@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Server First Boot
+Comment=Choose to keep GUI or strip to TTY
+Exec=/usr/local/bin/acreetionos-firstboot gui
+Icon=computer
+Terminal=false
+Categories=System;
+X-GNOME-Autostart-Phase=Applications
+X-KDE-autostart-after=panel
+OnlyShowIn=GNOME;X-Cinnamon;MATE;

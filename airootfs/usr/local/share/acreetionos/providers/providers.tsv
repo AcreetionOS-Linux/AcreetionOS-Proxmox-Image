@@ -1,0 +1,126 @@
+# AcreetionOS Server — VPS Provider Profiles
+# Columns: code | name | category | virt | net_iface | cloud_init | kernel_mods | notes | url
+# Top 100+ providers globally with deployment profiles
+
+# ── TIER 1: HYPERSCALERS ──
+aws      Amazon Web Services        hyperscaler   xen/kvm  eth0     aws      ena,ixgbevf,nvme         "Largest cloud provider. Use aws-cli for deployment."           https://aws.amazon.com
+azure    Microsoft Azure             hyperscaler   hyperv   eth0     azure    hv_utils,hid_hyperv      "Hyper-V paravirt drivers required."                          https://azure.microsoft.com
+gcp      Google Cloud Platform       hyperscaler   kvm      ens4     gcp      gve,nvme                  "Google Virtual Ethernet driver. Custom network interface."    https://cloud.google.com
+oci      Oracle Cloud Infrastructure hyperscaler   kvm      enp0s3   oci      ena,nvme                  "Good free tier. ENA networking."                             https://oracle.com/cloud
+
+# ── TIER 2: MAJOR PROVIDERS ──
+do       DigitalOcean                major         kvm      eth0     digitalocean virtio,nvme            "Simple, developer-friendly. NYC/SFO/AMS/LON/FRA."            https://digitalocean.com
+vultr    Vultr                       major         kvm      eth0     vultr    virtio,nvme               "Global presence. Bare metal options."                        https://vultr.com
+linode   Linode (Akamai)             major         kvm      eth0     linode   virtio                    "Long-standing provider. Good docs."                          https://linode.com
+hetzner  Hetzner Cloud               major         kvm      enp0s3   hetzner  virtio                    "Best price/performance in EU."                              https://hetzner.com
+ovh      OVHcloud                    major         kvm      enp0s3   ovh      virtio                    "French provider. Strong EU privacy."                         https://ovhcloud.com
+ionos    IONOS Cloud                 major         kvm      enp0s3   ionos    virtio                    "Formerly 1&1. EU-focused."                                  https://ionos.com
+upcloud  UpCloud                    major         kvm      eth0     upcloud  virtio                    "MaxIOPS storage. Good control panel."                        https://upcloud.com
+scaleway Scaleway                    major         kvm      ens2     scaleway virtio                    "French provider. ARM instances available."                   https://scaleway.com
+civo     Civo                        major         kvm      eth0     civo     virtio                    "Kubernetes-focused UK provider."                            https://civo.com
+bhost    Bhost                       major         kvm      eth0     bhost    virtio                    "Netherlands-based hosting."                                  https://bhost.net
+
+# ── TIER 3: BUDGET / POPULAR ──
+buyvm    BuyVM                       budget        kvm      eth0     buyvm    virtio                    "$3.50/mo storage slabs. Good for seedboxes."                 https://buyvm.net
+ramnode  RamNode                     budget        kvm/ovz  eth0     ramnode  virtio                    "OpenVZ and KVM options. Multiple locations."                 https://ramnode.com
+privex   Privex                      budget        kvm      eth0     privex   virtio                    "Privacy-focused. Crypto accepted."                           https://privex.io
+alphaVps AlphaVps                    budget        kvm      eth0     alphavps virtio                    "Affordable EU VPS."                                          https://alphavps.com
+rackNerd RackNerd                    budget        kvm      eth0     racknerd virtio                    "Budget provider. Frequent sales."                            https://racknerd.com
+netcup   Netcup                      budget        kvm      eth0     netcup   virtio                    "German budget provider. Good value."                         https://netcup.de
+time4vps Time4VPS                    budget        kvm      eth0     time4vps virtio                    "Lithuania-based. Good for EU hosting."                       https://time4vps.com
+contabo  Contabo                     budget        kvm      enp0s3   contabo  virtio                    "Lots of resources for low price."                            https://contabo.com
+hostinger Hostinger VPS              budget        kvm      eth0     hostinger virtio                   "Popular web host. Now offers VPS."                           https://hostinger.com
+a2host   A2 Hosting                  budget        kvm      eth0     a2host   virtio                    "Web hosting + VPS. US-based."                                https://a2hosting.com
+g-core   G-Core Labs                 budget        kvm      eth0     gcore    virtio                    "Luxembourg-based. CDN + cloud."                              https://gcore.com
+zhaman   Zhaman                      budget        kvm      eth0     zhaman   virtio                    "Kazakhstan provider. Central Asia."                          https://zhaman.kz
+selectel Selectel                    budget        kvm      eth0     selectel virtio                    "Russian provider. Moscow/StPetersburg."                      https://selectel.ru
+
+# ── TIER 4: NICHE / SPECIALIZED ──
+baremet  Bare Metal Cloud            niche         kvm      eth0     baremet  virtio                    "Bare metal as a service."                                    https://baremetalcloud.com
+mini     Mininova                    niche         kvm      eth0     mininova virtio                    "Minimal VPS. Privacy-oriented."                              https://mininova.com
+masto    Masto.host                  niche         kvm      eth0     mastodon virtio                    "Mastodon-optimized hosting."                                 https://masto.host
+porkbun  Porkbun                     niche         kvm      eth0     porkbun  virtio                    "Domain registrar + VPS."                                     https://porkbun.com
+mullvad  Mullvad                     niche         kvm      eth0     mullvad  virtio                    "VPN provider. Privacy VPS."                                  https://mullvad.net
+incog    Incognet                    niche         kvm      eth0     incognet virtio                    "Anonymous hosting. Offshore."                                https://incognet.io
+nyx      NYX Host                    niche         kvm      eth0     nyxhost  virtio                    "Romanian provider. DMCA ignored."                            https://nyxhost.com
+flok     Flokinet                    niche         kvm      eth0     flokinet virtio                    "Offshore hosting. Iceland/Romania."                          https://flokinet.is
+
+# ── TIER 5: ASIA-PACIFIC ──
+alibaba  Alibaba Cloud               apac          kvm      eth0     alibaba  virtio                    "Leading Chinese cloud. Asia-focused."                        https://alibabacloud.com
+tencent  Tencent Cloud               apac          kvm      eth0     tencent  virtio                    "Chinese provider. Strong in Asia."                           https://cloud.tencent.com
+huawei   Huawei Cloud                apac          kvm      eth0     huawei   virtio                    "Chinese provider. Global expansion."                         https://huaweicloud.com
+kakao    Kakao Cloud                 apac          kvm      eth0     kakao    virtio                    "Korean provider."                                            https://kakaocloud.com
+naver    Naver Cloud                 apac          kvm      eth0     naver    virtio                    "Korean provider. Formerly NHN."                              https://navercloud.com
+idcf     IDCF Cloud                  apac          kvm      eth0     idcf     virtio                    "Japanese provider."                                          https://cloud.idcf.jp
+sakura   Sakura Internet             apac          kvm      eth0     sakura   virtio                    "Japanese provider. Good for JP hosting."                     https://sakura.ad.jp
+conoha   ConoHa                      apac          kvm      eth0     conoha   virtio                    "Japanese VPS. Popular for gaming."                           https://conoha.io
+xrea     Xrea                        apac          kvm      eth0     xrea     virtio                    "Japanese provider. Cheap VPS."                               https://xrea.com
+kagoya   Kagoya                      apac          kvm      eth0     kagoya   virtio                    "Japanese cloud provider."                                    https://kagoya.net
+vps      VPS.JP                      apac          kvm      eth0     vpsjp    virtio                    "Japan VPS. Low latency."                                     https://vps.jp
+green    Green Cloud                 apac          kvm      eth0     greencloud virtio                  "Vietnam-based. SE Asia focused."                             https://greencloud.vn
+vinahost Vinahost                    apac          kvm      eth0     vinahost virtio                    "Vietnamese provider."                                        https://vinahost.vn
+matbao   Mat Bao                     apac          kvm      eth0     matbao   virtio                    "Vietnamese provider."                                        https://matbao.net
+ind      Indoweb                     apac          kvm      eth0     indoweb  virtio                    "Indonesian provider."                                        https://indoweb.com
+telkom   Telkom Cloud                apac          kvm      eth0     telkom   virtio                    "Indonesian telecom cloud."                                   https://telkomcloud.com
+speed    SpeedHost                   apac          kvm      eth0     speedhost virtio                   "Australian provider."                                        https://speedhost.com.au
+ventraip VentraIP                    apac          kvm      eth0     ventraip virtio                    "Australian provider."                                        https://ventraip.com.au
+binary   BinaryLane                  apac          kvm      eth0     binarylan virtio                   "New Zealand provider."                                       https://binarylane.com.nz
+
+# ── TIER 6: EUROPE ──
+exoscale Exoscale                    europe        kvm      eth0     exoscale virtio                    "Swiss provider. GDPR-compliant."                             https://exoscale.com
+infoman  Infomaniak                  europe        kvm      eth0     infoman  virtio                    "Swiss provider. Eco-friendly."                               https://infomaniak.com
+alter     AlterHost                  europe        kvm      eth0     alterhost virtio                   "Czech provider."                                             https://alterhost.cz
+vshosting VS-Hosting                 europe        kvm      eth0     vshosting virtio                   "Czech provider. Good support."                               https://vshosting.cz
+webglobe Webglobe                    europe        kvm      eth0     webglobe virtio                    "Czech provider. Web hosting + VPS."                          https://webglobe.cz
+wedos    Wedos                       europe        kvm      eth0     wedos    virtio                    "Czech provider. Domain + VPS."                               https://wedos.com
+forpsi   Forpsi                      europe        kvm      eth0     forpsi   virtio                    "Czech/European provider."                                    https://forpsi.com
+active   Active 24                   europe        kvm      eth0     active24 virtio                    "Danish provider."                                            https://active24.com
+one      One.com                     europe        kvm      eth0     onecom   virtio                    "Danish web host + VPS."                                      https://one.com
+dandomain Dandomain                   europe        kvm      eth0     dandomain virtio                   "Danish provider."                                            https://dandomain.dk
+transip  TransIP                     europe        kvm      eth0     transip  virtio                    "Dutch provider."                                             https://transip.nl
+cloudnl  CloudNL                     europe        kvm      eth0     cloudnl  virtio                    "Dutch cloud provider."                                       https://cloudnl.nl
+broad    Broadband                   europe        kvm      eth0     broadband virtio                   "Dutch hosting."                                              https://broadband.nl
+signet   Signet                      europe        kvm      eth0     signet   virtio                    "Dutch VPS provider."                                         https://signet.nl
+pc       PCextreme                   europe        kvm      eth0     pcextreme virtio                   "Dutch hosting. Good for EU."                                 https://pcextreme.nl
+soyou    SoYouStart                  europe        kvm      eth0     soyyou   virtio                    "OVH budget brand. Cheap dedicated."                          https://soyoustart.com
+kimsufi  Kimsufi                     europe        kvm      eth0     kimsufi  virtio                    "OVH budget brand. Very cheap."                               https://kimsufi.com
+online   Online.net                  europe        kvm      eth0     onlinenet virtio                   "Scaleway brand. French DC."                                  https://online.net
+ikoula   Ikoula                      europe        kvm      eth0     ikoula   virtio                    "French provider. Dedicated + VPS."                           https://ikoula.com
+gandi     Gandi.net                  europe        kvm      eth0     gandi    virtio                    "French domain + VPS. Ethical."                               https://gandi.net
+abs      ABS Cloud                   europe        kvm      eth0     abscloud virtio                    "Bulgarian provider."                                         https://abscloud.com
+superb   SuperbVPS                   europe        kvm      eth0     superbvps virtio                   "Polish provider."                                            https://superbvps.com
+mythic   Mythic Beasts               europe        kvm      eth0     mythic   virtio                    "UK provider. Raspberry Pi hosting."                          https://mythicbeasts.com
+bknown   Bytemark                    europe        kvm      eth0     bytemark virtio                    "UK provider. Good support."                                  https://bytemark.co.uk
+ukfast   UKFast                      europe        kvm      eth0     ukfast   virtio                    "UK managed hosting."                                         https://ukfast.co.uk
+stack    Stack      Computers        europe        kvm      eth0     stackcomps virtio                  "UK provider."                                                https://stackcomputers.com
+ess      ESS DATA                    europe        kvm      eth0     essdata  virtio                    "Polish datacenter."                                          https://ess-data.pl
+luna     LunaNode                    europe        kvm      eth0     lunanode virtio                    "Canadian + EU. Privacy-oriented."                            https://lunanode.com
+
+# ── TIER 7: AMERICAS ──
+vultr    Vultr (Americas)            americas      kvm      eth0     vultr    virtio                    "Multiple US/CA/BR locations."                                https://vultr.com
+do       DigitalOcean (Americas)     americas      kvm      eth0     digitalocean virtio                 "NYC/SFO/TOR data centers."                                   https://digitalocean.com
+linode   Linode (Americas)           americas      kvm      eth0     linode   virtio                    "US/CAN locations."                                           https://linode.com
+racksp   Rackspace                   americas      kvm      eth0     rackspace virtio                   "Enterprise cloud. US/UK/AU."                                 https://rackspace.com
+vox      Voxility                    americas      kvm      eth0     voxility virtio                    "US/EU provider. DDoS protection."                            https://voxility.com
+dacentec Dacentec                    americas      kvm      eth0     dacentec virtio                    "US East Coast. Cheap dedicated."                             https://dacentec.com
+psychz   Psychz                      americas      kvm      eth0     psychz   virtio                    "US provider. DDoS protection."                               https://psychz.net
+coloval   ColoValley                 americas      kvm      eth0     colovaley virtio                   "US provider. Affordable VPS."                                https://colovalley.com
+host    HostUS                      americas      kvm      eth0     hostus   virtio                    "US + Asia locations."                                        https://hostus.us
+santric  Santric                     americas      kvm      eth0     santric  virtio                    "Brazilian provider."                                         https://santric.com.br
+lok      Locaweb                     americas      kvm      eth0     locaweb  virtio                    "Brazilian provider. Largest in BR."                          https://locaweb.com.br
+umbler   Umbler                      americas      kvm      eth0     umbler   virtio                    "Brazilian cloud. Developer-friendly."                        https://umbler.com
+king     KingHost                    americas      kvm      eth0     kinghost virtio                    "Brazilian web host + VPS."                                   https://kinghost.com.br
+donweb   DonWeb                      americas      kvm      eth0     donweb   virtio                    "Argentinian provider. LatAm focused."                        https://donweb.com
+neubox   Neubox                      americas      kvm      eth0     neubox   virtio                    "Mexican provider."                                           https://neubox.com
+dattatec Dattatec                    americas      kvm      eth0     dattatec virtio                    "Argentinian provider."                                       https://dattatec.com
+
+# ── TIER 8: AFRICA / MIDDLE EAST ──
+afrihost Afrihost                    africa        kvm      eth0     afrihost virtio                    "South African provider."                                     https://afrihost.com
+domains  Domains.co.za               africa        kvm      eth0     domains  virtio                    "South African hosting."                                      https://domains.co.za
+absolute Absolute Hosting            africa        kvm      eth0     absolutehost virtio                "Kenyan hosting."                                             https://absolutehosting.co.ke
+layer    LayerHost                   africa        kvm      eth0     layerhost virtio                   "South African cloud."                                        https://layerhost.com
+arub     Aruba Cloud                 middleeast    kvm      eth0     aruba    virtio                    "Italian provider. Middle East DCs."                          https://aruba.it
+ovh      OVH Middle East             middleeast    kvm      eth0     ovh      virtio                    "OVH in Middle East."                                         https://ovh.com
+pccw     PCCW                        middleeast    kvm      eth0     pccw     virtio                    "Hong Kong + Middle East."                                    https://pccw.com
+e24      E24 Cloud                   middleeast    kvm      eth0     e24      virtio                    "UAE-based cloud."                                           https://e24cloud.com
+oracle   Oracle Cloud (ME)           middleeast    kvm      eth0     oci      ena,nvme                  "OCI Middle East regions."                                    https://oracle.com

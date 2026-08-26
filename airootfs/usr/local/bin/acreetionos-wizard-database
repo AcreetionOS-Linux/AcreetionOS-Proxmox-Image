@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# AcreetionOS Server — Database Setup Wizard
+# Initialize MariaDB, PostgreSQL, set admin passwords, create databases.
+set -euo pipefail
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
+[[ $EUID -ne 0 ]] && exec sudo "$0" "$@"
+
+MYSQL_OK=false; PGSQL_OK=false
+[[ -d /var/lib/mysql/mysql ]] && MYSQL_OK=true
+[[ -f /var/lib/postgres/data/PG_VERSION ]] && PGSQL_OK=true
+
+while true; do
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}           ${BOLD}Database Setup${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    MYSQL_OK=false; PGSQL_OK=false
+    [[ -d /var/lib/mysql/mysql ]] && MYSQL_OK=true
+    [[ -f /var/lib/postgres/data/PG_VERSION ]] && PGSQL_OK=true
+    echo "  ${BOLD}MariaDB:${NC}  $($MYSQL_OK && echo "${GREEN}initialized${NC}" || echo "${YELLOW}not initialized${NC}")"
+    echo "  ${BOLD}PostgreSQL:${NC} $($PGSQL_OK && echo "${GREEN}initialized${NC}" || echo "${YELLOW}not initialized${NC}")"
+    echo ""
+    echo "  1)  Initialize MariaDB"
+    echo "  2)  Initialize PostgreSQL"
+    echo "  3)  Set MariaDB root password"
+    echo "  4)  Set PostgreSQL admin password"
+    echo "  5)  Create a new database + user"
+    echo "  6)  Start/stop/restart database services"
+    echo "  7)  Open database ports in firewall"
+    echo "  8)  Import SQL file"
+    echo ""
+    echo "  b)  Back"
+    echo ""
+    read -r -p "  Choice: " dc
+
+    case "$dc" in
+        1)
+            if $MYSQL_OK; then echo "  MariaDB already initialized."; else
+                mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql 2>/dev/null
+                systemctl enable --now mariadb.service 2>/dev/null || true
+                echo -e "${GREEN}[✓]${NC} MariaDB initialized and started."
+                # Set default root password
+                mysqladmin -u root password "dbadmin" 2>/dev/null || true
+                echo "  MariaDB root password set to: dbadmin (change immediately)"
+            fi ;;
+        2)
+            if $PGSQL_OK; then echo "  PostgreSQL already initialized."; else
+                mkdir -p /var/lib/postgres/data
+                chown postgres:postgres /var/lib/postgres/data
+                su - postgres -c "initdb -D /var/lib/postgres/data --locale en_US.UTF-8" 2>/dev/null
+                systemctl enable --now postgresql.service 2>/dev/null || true
+                echo -e "${GREEN}[✓]${NC} PostgreSQL initialized and started."
+                su - postgres -c "psql -c \"ALTER USER postgres PASSWORD 'dbadmin';\"" 2>/dev/null || true
+                echo "  PostgreSQL postgres password set to: dbadmin (change immediately)"
+            fi ;;
+        3)
+            if ! $MYSQL_OK; then echo "  Initialize MariaDB first (option 1)."; else
+                read -r -s -p "  New MariaDB root password: " mpw; echo ""
+                mysqladmin -u root -p"$(cat /root/.dbpass 2>/dev/null || echo '')" password "$mpw" 2>/dev/null || \
+                mysqladmin -u root password "$mpw" 2>/dev/null || \
+                echo -e "${YELLOW}Failed to set password. Is MariaDB running?" ;;
+            fi ;;
+        4)
+            if ! $PGSQL_OK; then echo "  Initialize PostgreSQL first (option 2)."; else
+                read -r -s -p "  New PostgreSQL postgres password: " ppw; echo ""
+                su - postgres -c "psql -c \"ALTER USER postgres PASSWORD '$ppw';\"" 2>/dev/null || true
+                echo -e "${GREEN}[✓]${NC} Password updated."
+            fi ;;
+        5)
+            echo ""; read -r -p "  Database name: " dbname; [[ -z "$dbname" ]] && continue
+            read -r -p "  Username: " dbuser; [[ -z "$dbuser" ]] && continue
+            read -r -s -p "  Password: " dbpass; echo ""
+            echo "  Which database engine?"
+            echo "  1) MariaDB"
+            echo "  2) PostgreSQL"
+            read -r -p "  Choice: " dbe
+            case "$dbe" in
+                1)
+                    if systemctl is-active mariadb.service &>/dev/null; then
+                        mysql -u root -e "CREATE DATABASE IF NOT EXISTS $dbname;" 2>/dev/null
+                        mysql -u root -e "CREATE USER IF NOT EXISTS '$dbuser'@'localhost' IDENTIFIED BY '$dbpass';" 2>/dev/null
+                        mysql -u root -e "GRANT ALL PRIVILEGES ON $dbname.* TO '$dbuser'@'localhost'; FLUSH PRIVILEGES;" 2>/dev/null
+                        echo -e "${GREEN}[✓]${NC} MariaDB database '$dbname' created for user '$dbuser'."
+                    else
+                        echo "  MariaDB is not running." ;;
+                    fi ;;
+                2)
+                    if systemctl is-active postgresql &>/dev/null; then
+                        su - postgres -c "createdb $dbname" 2>/dev/null || true
+                        su - postgres -c "psql -c \"CREATE USER $dbuser WITH PASSWORD '$dbpass';\"" 2>/dev/null || true
+                        su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE $dbname TO $dbuser;\"" 2>/dev/null || true
+                        echo -e "${GREEN}[✓]${NC} PostgreSQL database '$dbname' created for user '$dbuser'."
+                    else
+                        echo "  PostgreSQL is not running." ;;
+                    fi ;;
+            esac ;;
+        6)
+            echo "  Start/Stop which?"
+            echo "  1) MariaDB"
+            echo "  2) PostgreSQL"
+            read -r -p "  Choice: " dss
+            echo "  Action: start / stop / restart / status"
+            read -r -p "  Action: " daction
+            case "$dss" in 1) systemctl "$daction" mariadb.service ;; 2) systemctl "$daction" postgresql.service ;; esac ;;
+        7)
+            echo "  Open database ports?"
+            echo "  1) MariaDB (3306)"
+            echo "  2) PostgreSQL (5432)"
+            echo "  3) Both"
+            read -r -p "  Choice: " dbp
+            [ -f /etc/nftables/acreetionos-server.conf ] || { echo "  No firewall config found."; continue; }
+            if [[ "$dbp" == "1" || "$dbp" == "3" ]]; then nft add rule inet acreetionos input tcp dport 3306 accept 2>/dev/null || true; fi
+            if [[ "$dbp" == "2" || "$dbp" == "3" ]]; then nft add rule inet acreetionos input tcp dport 5432 accept 2>/dev/null || true; fi
+            echo -e "${GREEN}[✓]${NC} Database ports opened." ;;
+        8)
+            read -r -p "  SQL file path: " sqlfile
+            [[ -z "$sqlfile" ]] && continue
+            echo "  Import to which engine?"
+            echo "  1) MariaDB"
+            echo "  2) PostgreSQL"
+            read -r -p "  Choice: " sqle
+            case "$sqle" in
+                1) mysql -u root < "$sqlfile" 2>/dev/null && echo -e "${GREEN}[✓]${NC} Imported to MariaDB" ;;
+                2) su - postgres -c "psql -f \"$sqlfile\"" 2>/dev/null && echo -e "${GREEN}[✓]${NC} Imported to PostgreSQL" ;;
+            esac ;;
+        b|B) return ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+done

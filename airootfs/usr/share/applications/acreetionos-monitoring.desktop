@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Monitoring
+Comment=Configure Prometheus, Grafana, and Netdata
+Exec=pkexec acreetionos-wizard-monitoring
+Icon=utilities-system-monitor
+Terminal=true
+Categories=System;Monitoring;Settings;
+StartupNotify=false

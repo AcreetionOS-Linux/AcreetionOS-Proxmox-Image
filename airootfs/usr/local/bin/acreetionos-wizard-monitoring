@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# AcreetionOS Server — Monitoring Setup Wizard
+# Prometheus, Grafana, Netdata configuration.
+set -euo pipefail
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
+[[ $EUID -ne 0 ]] && exec sudo "$0" "$@"
+
+while true; do
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}           ${BOLD}Monitoring Configuration${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo "  1)  Check status of all monitoring services"
+    echo "  2)  Start/stop/restart monitoring stack"
+    echo "  3)  Open monitoring ports in firewall"
+    echo "  4)  Add a Prometheus scrape target"
+    echo "  5)  Enable/disable specific exporters"
+    echo "  6)  Reset Grafana admin password"
+    echo "  7)  Set up Netdata dashboard"
+    echo "  8)  View monitoring quick reference"
+    echo ""
+    echo "  b)  Back"
+    echo ""
+    read -r -p "  Choice: " mc
+    case "$mc" in
+        1)
+            for svc in prometheus node_exporter grafana netdata; do
+                status=$(systemctl is-active "$svc" 2>/dev/null || echo "inactive")
+                enabled=$(systemctl is-enabled "$svc" 2>/dev/null || echo "disabled")
+                printf "  %-20s %-10s %s\n" "$svc" "$status" "$enabled"
+            done ;;
+        2)
+            echo "  Start/stop/restart which service?"
+            echo "  1) All monitoring services"
+            echo "  2) Prometheus"
+            echo "  3) Grafana"
+            echo "  4) Netdata"
+            read -r -p "  Choice: " ms
+            echo "  Action: start / stop / restart"
+            read -r -p "  Action: " ma
+            case "$ms" in
+                1) for s in prometheus node_exporter grafana netdata; do systemctl "$ma" "$s" 2>/dev/null || true; done ;;
+                2) systemctl "$ma" prometheus node_exporter ;;
+                3) systemctl "$ma" grafana ;;
+                4) systemctl "$ma" netdata ;;
+            esac ;;
+        3)
+            echo "  Open monitoring web ports?"
+            echo "  1) Prometheus (9090)"
+            echo "  2) Grafana (3000)"
+            echo "  3) Netdata (19999)"
+            echo "  4) All monitoring ports"
+            read -r -p "  Choice: " mp
+            case "$mp" in 1) nft add rule inet acreetionos input tcp dport 9090 accept 2>/dev/null || true ;;
+                2) nft add rule inet acreetionos input tcp dport 3000 accept 2>/dev/null || true ;;
+                3) nft add rule inet acreetionos input tcp dport 19999 accept 2>/dev/null || true ;;
+                4) for p in 9090 3000 19999; do nft add rule inet acreetionos input tcp dport $p accept 2>/dev/null || true; done ;; esac
+            echo -e "${GREEN}[✓]${NC} Ports opened." ;;
+        4)
+            read -r -p "  Target name (e.g., web-server, db-server): " tname
+            read -r -p "  Target address (host:port): " taddr
+            [[ -z "$tname" || -z "$taddr" ]] && continue
+            cat >> /etc/prometheus/prometheus.yml << EOF
+  - job_name: $tname
+    static_configs:
+      - targets: ['$taddr']
+EOF
+            systemctl restart prometheus 2>/dev/null || true
+            echo -e "${GREEN}[✓]${NC} Prometheus target '$tname' -> $taddr added" ;;
+        5)
+            echo "  Available exporters:"
+            for ex in node_exporter prometheus; do
+                en=$(systemctl is-enabled "$ex" 2>/dev/null || echo "disabled")
+                ac=$(systemctl is-active "$ex" 2>/dev/null || echo "inactive")
+                printf "  %-20s %-10s %s\n" "$ex" "$en" "$ac"
+            done
+            echo ""
+            read -r -p "  Exporter name to toggle: " exname
+            if systemctl is-enabled "$exname" &>/dev/null; then
+                systemctl disable --now "$exname" 2>/dev/null || true
+                echo "  Disabled $exname"
+            else
+                systemctl enable --now "$exname" 2>/dev/null || true
+                echo "  Enabled $exname"
+            fi ;;
+        6)
+            echo "  Resetting Grafana admin password..."
+            read -r -s -p "  New Grafana admin password: " gpass; echo ""
+            if systemctl is-active grafana &>/dev/null; then
+                grafana-cli admin reset-admin-password "$gpass" 2>/dev/null || \
+                grafana-cli --homepath /usr/share/grafana admin reset-admin-password "$gpass" 2>/dev/null || \
+                echo "Grafana password reset via SQL..." 
+                echo "  Manual reset: sudo -u grafana psql -c \"ALTER USER admin PASSWORD '$gpass';\"" 2>/dev/null || true
+                echo -e "${GREEN}[✓]${NC} Grafana admin password reset. Login at http://localhost:3000"
+            else
+                echo "  Grafana is not running. Start it first."
+            fi ;;
+        7)
+            echo "  Netdata dashboard: http://$(hostname -f 2>/dev/null || hostname):19999"
+            systemctl enable --now netdata 2>/dev/null || true
+            echo -e "${GREEN}[✓]${NC} Netdata enabled on port 19999" ;;
+        8)
+            echo ""
+            echo "  ${BOLD}Monitoring Quick Reference${NC}"
+            echo "  Grafana:    http://$(hostname -f 2>/dev/null || hostname):3000  (admin/admin)"
+            echo "  Prometheus: http://$(hostname -f 2>/dev/null || hostname):9090"
+            echo "  Netdata:    http://$(hostname -f 2>/dev/null || hostname):19999"
+            echo ""
+            echo "  Default Grafana credentials: admin / admin"
+            echo "  Change immediately with option 6."
+            echo ""
+            echo "  Prometheus data directory: /var/lib/prometheus/"
+            echo "  Grafana data directory:    /var/lib/grafana/"
+            echo "  Netdata config:            /etc/netdata/" ;;
+        b|B) return ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+done

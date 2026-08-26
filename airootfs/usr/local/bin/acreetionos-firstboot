@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AcreetionOS Server — First Boot Wizard
+# Runs once after installation. Asks user if they want to keep the GUI or
+# strip to TTY. Supports GUI (zenity) and TTY (whiptail) modes.
+# ==============================================================================
+set -euo pipefail
+
+MARKER="/etc/acreetionos-firstboot-done"
+MODE="${1:-auto}"  # auto, gui, tty
+
+# Only run once
+if [[ -f "${MARKER}" ]]; then
+    exit 0
+fi
+
+# Detect mode
+if [[ "${MODE}" == "auto" ]]; then
+    if [[ -n "${DISPLAY:-}" ]] && command -v zenity &>/dev/null; then
+        MODE="gui"
+    elif command -v whiptail &>/dev/null; then
+        MODE="tty"
+    else
+        MODE="tty"
+    fi
+fi
+
+show_gui_dialog() {
+    zenity --question --title="AcreetionOS Server — First Boot" \
+        --text="Welcome to AcreetionOS Server!\n\nThis system comes with a full Cinnamon desktop experience\npre-installed alongside all server tooling.\n\nDo you want to KEEP the desktop GUI?\n\n  → Yes:  Continue with the full desktop experience\n  → No:   Strip the GUI and switch to TTY-only mode\n          (saves ~500MB, frees RAM, tighter security)\n\nYou can change your mind later:\n  strip:  sudo acreetionos-strip-gui\n  add:    sudo acreetionos-install-gui" \
+        --width=600 --height=350 \
+        --ok-label="Keep GUI" --cancel-label="Strip to TTY" \
+        --icon-name=computer 2>/dev/null
+}
+
+show_tty_dialog() {
+    whiptail --title "AcreetionOS Server — First Boot" \
+        --yesno "Welcome to AcreetionOS Server!
+
+This system comes with a full Cinnamon desktop
+experience pre-installed alongside all server tooling.
+
+Do you want to KEEP the desktop GUI?
+
+  → Yes:  Continue with the full desktop experience
+  → No:   Strip the GUI and switch to TTY-only mode
+          (saves ~500MB, frees RAM, tighter security)
+
+You can change your mind later:
+  strip:  sudo acreetionos-strip-gui
+  add:    sudo acreetionos-install-gui" \
+        20 72 2>&1 >/dev/tty
+}
+
+# Show the dialog
+KEEP_GUI=false
+if [[ "${MODE}" == "gui" ]]; then
+    if show_gui_dialog; then
+        KEEP_GUI=true
+    fi
+else
+    # TTY mode — run on the actual terminal
+    # Save/restore terminal state
+    exec < /dev/tty1 2>/dev/null || exec < /dev/console 2>/dev/null || true
+    if show_tty_dialog; then
+        KEEP_GUI=true
+    fi
+fi
+
+if [[ "${KEEP_GUI}" == "true" ]]; then
+    # User wants the desktop — mark done and continue
+    echo "Keeping desktop GUI. Welcome to AcreetionOS Server!"
+    mkdir -p "$(dirname "${MARKER}")"
+    date > "${MARKER}"
+    exit 0
+else
+    # User wants to strip — run the strip script
+    echo "Stripping GUI as requested..."
+    mkdir -p "$(dirname "${MARKER}")"
+    date > "${MARKER}"
+    exec /usr/local/bin/acreetionos-strip-gui "${MODE}"
+fi

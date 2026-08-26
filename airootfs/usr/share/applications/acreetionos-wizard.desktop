@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Setup Wizard
+Comment=Configure firewall, databases, security, backup, monitoring, network, VMs, and more
+Exec=pkexec acreetionos-wizard
+Icon=preferences-system
+Terminal=true
+Categories=System;Settings;
+StartupNotify=false

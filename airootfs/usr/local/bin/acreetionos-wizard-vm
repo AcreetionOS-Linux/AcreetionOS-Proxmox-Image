@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# AcreetionOS Server — Virtual Machine Creation Wizard
+# Guided VM creation with libvirt + qemu.
+set -euo pipefail
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
+[[ $EUID -ne 0 ]] && exec sudo "$0" "$@"
+
+while true; do
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}           ${BOLD}Virtual Machine Creator${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo "  1)  Create a new VM"
+    echo "  2)  List running VMs"
+    echo "  3)  List all VMs"
+    echo "  4)  Start/stop/reboot a VM"
+    echo "  5)  Open VM console (VNC)"
+    echo "  6)  View VM info & specs"
+    echo "  7)  Delete a VM"
+    echo "  8)  Create VM storage pool"
+    echo ""
+    echo "  b)  Back"
+    echo ""
+    read -r -p "  Choice: " vc
+    case "$vc" in
+        1)
+            echo ""; read -r -p "  VM name: " vmname; [[ -z "$vmname" ]] && continue
+            read -r -p "  RAM (MB) [2048]: " vmram; vmram="${vmram:-2048}"
+            read -r -p "  vCPUs [2]: " vmcpu; vmcpu="${vmcpu:-2}"
+            read -r -p "  Disk size (GB) [20]: " vmdisk; vmdisk="${vmdisk:-20}"
+            read -r -p "  OS variant (e.g., linux, ubuntu24, debian12, archlinux) [linux]: " vmos
+            vmos="${vmos:-linux}"
+            read -r -p "  ISO path (or URL to download): " vmiso
+            echo ""
+            if [[ "$vmiso" =~ ^https?:// ]]; then
+                echo "  Downloading ISO..."
+                mkdir -p /var/lib/libvirt/images
+                curl -Lo "/var/lib/libvirt/images/${vmname}.iso" "$vmiso" 2>/dev/null || { echo "  Download failed."; continue; }
+                vmiso="/var/lib/libvirt/images/${vmname}.iso"
+            fi
+            if [[ ! -f "$vmiso" ]]; then echo "  ISO not found."; continue; fi
+            echo "  Creating disk image..."
+            qemu-img create -f qcow2 "/var/lib/libvirt/images/${vmname}.qcow2" "${vmdisk}G" 2>/dev/null || { echo "  Disk creation failed."; continue; }
+            echo "  Defining VM..."
+            virt-install \
+                --name "$vmname" \
+                --ram "$vmram" \
+                --vcpus "$vmcpu" \
+                --disk "/var/lib/libvirt/images/${vmname}.qcow2,format=qcow2" \
+                --cdrom "$vmiso" \
+                --os-variant "$vmos" \
+                --network default \
+                --graphics vnc,listen=0.0.0.0 \
+                --noautoconsole \
+                2>/dev/null || { echo "  VM creation failed."; continue; }
+            echo -e "${GREEN}[✓]${NC} VM '$vmname' created (${vmram}MB, ${vmcpu}vCPU, ${vmdisk}GB)"
+            echo "  Connect with: virt-viewer $vmname"
+            echo "  Or VNC:       vncviewer <host>:0" ;;
+        2)
+            echo ""; virsh list 2>/dev/null | sed 's/^/  /' || echo "  No running VMs." ;;
+        3)
+            echo ""; virsh list --all 2>/dev/null | sed 's/^/  /' || echo "  No VMs defined." ;;
+        4)
+            read -r -p "  VM name: " vname
+            echo "  Action: start / shutdown / reboot / destroy"
+            read -r -p "  Action: " vact
+            virsh "$vact" "$vname" 2>/dev/null && echo -e "${GREEN}[✓]${NC} $vact $vname" || echo "  Failed." ;;
+        5)
+            read -r -p "  VM name: " vconv
+            echo "  Connecting to VNC console..."
+            virsh vncdisplay "$vconv" 2>/dev/null
+            echo "  Use a VNC client to connect to the display above."
+            echo "  Or install virt-viewer: pacman -S virt-viewer" ;;
+        6)
+            read -r -p "  VM name: " vinfo
+            virsh dominfo "$vinfo" 2>/dev/null | sed 's/^/  /' || echo "  VM not found." ;;
+        7)
+            read -r -p "  VM name to delete: " vdel
+            confirm "Delete VM '$vdel' and its disks?" || continue
+            virsh destroy "$vdel" 2>/dev/null || true
+            virsh undefine "$vdel" --remove-all-storage 2>/dev/null || true
+            echo -e "${YELLOW}[!]${NC} VM '$vdel' deleted." ;;
+        8)
+            read -r -p "  Pool name [default]: " poolname; poolname="${poolname:-default}"
+            read -r -p "  Pool path [/var/lib/libvirt/images]: " poolpath; poolpath="${poolpath:-/var/lib/libvirt/images}"
+            mkdir -p "$poolpath"
+            virsh pool-create-as "$poolname" dir --target "$poolpath" 2>/dev/null || true
+            virsh pool-autostart "$poolname" 2>/dev/null || true
+            echo -e "${GREEN}[✓]${NC} Storage pool '$poolname' -> $poolpath" ;;
+        b|B) return ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+done

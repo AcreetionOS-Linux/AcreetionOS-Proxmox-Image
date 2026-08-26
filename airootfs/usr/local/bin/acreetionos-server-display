@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Shows the installer status on tty1 during auto-installation
+set -euo pipefail
+
+clear
+echo ""
+echo "  ╔══════════════════════════════════════════════════════════╗"
+echo "  ║            AcreetionOS Server Installer                 ║"
+echo "  ║                                                         ║"
+echo "  ║  The system is being automatically installed to disk.   ║"
+echo "  ║  This will take 5-15 minutes depending on your system.  ║"
+echo "  ║                                                         ║"
+echo "  ║  The system will reboot automatically when complete.    ║"
+echo "  ║  Credentials are displayed at the end of installation.    ║"
+echo "  ║                                                         ║"
+echo "  ║  Installer log:                                         ║"
+echo "  ╚══════════════════════════════════════════════════════════╝"
+echo ""
+
+# Wait for the installer service to start
+sleep 3
+
+# Follow the installer log
+journalctl -fu acreetionos-server-installer.service --no-hostname -o short-iso 2>/dev/null || \
+  tail -f /var/log/acreetionos-installer.log 2>/dev/null || \
+  (echo "Waiting for installer to begin..." && sleep 3600)

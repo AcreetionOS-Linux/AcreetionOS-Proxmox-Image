@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Firewall
+Comment=Configure ports and firewall rules (nftables)
+Exec=pkexec acreetionos-wizard-firewall
+Icon=network-firewall
+Terminal=true
+Categories=System;Security;Settings;
+StartupNotify=false

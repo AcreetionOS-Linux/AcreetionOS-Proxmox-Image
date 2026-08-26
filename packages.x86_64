@@ -1,0 +1,398 @@
+################################################################################
+# AcreetionOS Proxmox Package List v1.0 — Proxmox VE Guest Edition
+# Auto-installing server ISO tuned for Proxmox VE virtual machines.
+# Derived from AcreetionOS Server: same tooling, VM-lean package set.
+# No wireless stack, no audio hardware support (VMs have neither by default).
+# First-boot popup still asks: keep GUI or strip to TTY?
+################################################################################
+
+################################################################################
+# CORE SYSTEM
+################################################################################
+base
+linux
+linux-headers
+linux-firmware
+mkinitcpio
+mkinitcpio-archiso
+mkinitcpio-nfs-utils
+mkinitcpio-busybox
+mkinitcpio-systemd-tool
+mkinitcpio-openswap
+sudo
+dbus
+polkit
+polkit-gnome
+arch-install-scripts
+reflector
+pacman-contrib
+
+################################################################################
+# BOOT & BOOTLOADER
+################################################################################
+grub
+syslinux
+efibootmgr
+os-prober
+plymouth
+
+################################################################################
+# FILESYSTEM SUPPORT
+################################################################################
+dosfstools
+e2fsprogs
+exfatprogs
+ntfs-3g
+squashfs-tools
+gptfdisk
+parted
+gpart
+btrfs-progs
+xfsprogs
+device-mapper
+
+################################################################################
+# ENCRYPTION & STORAGE
+################################################################################
+cryptsetup
+lvm2
+mdadm
+
+################################################################################
+# NETWORKING — base (wired only; Proxmox guests use virtio NICs)
+################################################################################
+networkmanager
+dhcpcd
+openssh
+rsync
+qemu-guest-agent
+
+################################################################################
+# AUDIO — omitted: Proxmox VE guests have no host audio device by default.
+# acreetionos-install-gui restores a full audio stack if you keep the GUI.
+################################################################################
+
+################################################################################
+# DISPLAY SERVER — graphics stack (kept for the optional Desktop Experience)
+################################################################################
+xorg-server
+xorg-server-common
+xorg-xinit
+xorg-xrandr
+xorg-xrdb
+mesa
+mesa-utils
+glu
+vulkan-headers
+ocl-icd
+opencl-headers
+xf86-input-libinput
+xf86-video-amdgpu
+xf86-video-intel
+xf86-video-nouveau
+
+################################################################################
+# DISPLAY MANAGER
+################################################################################
+lightdm
+lightdm-gtk-greeter
+accountsservice
+
+################################################################################
+# CINNAMON DESKTOP — full desktop experience
+################################################################################
+cinnamon
+cinnamon-control-center
+cinnamon-desktop
+cinnamon-menus
+cinnamon-session
+cinnamon-settings-daemon
+cinnamon-screensaver
+cinnamon-translations
+cjs
+muffin
+nemo
+gnome-terminal
+gnome-keyring
+gnome-themes-extra
+
+################################################################################
+# DESKTOP INTEGRATION
+################################################################################
+xdg-desktop-portal-xapp
+xdg-user-dirs
+xdg-user-dirs-gtk
+xdg-utils
+zenity
+libnewt
+
+################################################################################
+# DESKTOP APPLICATIONS — utilities, not bloat
+################################################################################
+xed
+gnome-system-monitor
+webapp-manager
+fastfetch
+pamac-gtk3
+
+################################################################################
+# THEMES & ICONS — same look as desktop version
+################################################################################
+adwaita-icon-theme
+mate-icon-theme-faenza
+gnu-free-fonts
+
+################################################################################
+# NETWORK SHARING
+################################################################################
+samba
+
+################################################################################
+# SYSTEM UTILITIES
+################################################################################
+nano
+nano-syntax-highlighting
+less
+zsh
+vim
+htop
+iotop
+nvtop
+btop
+screen
+tmux
+ncdu
+diffutils
+fakeroot
+
+################################################################################
+# HARDWARE SUPPORT
+################################################################################
+usbutils
+nvme-cli
+smartmontools
+lm_sensors
+dmidecode
+hdparm
+
+################################################################################
+# DEVELOPMENT TOOLS
+################################################################################
+base-devel
+git
+go
+rust
+nodejs
+npm
+python
+python-pip
+
+################################################################################
+# SERVER — WEB SERVING
+################################################################################
+nginx-mainline
+apache
+certbot
+certbot-nginx
+
+################################################################################
+# SERVER — DATABASES
+################################################################################
+mariadb
+postgresql
+redis
+sqlite
+
+################################################################################
+# SERVER — CONTAINERIZATION
+################################################################################
+docker
+docker-compose
+containerd
+runc
+buildkit
+
+################################################################################
+# SERVER — MONITORING
+################################################################################
+prometheus
+grafana
+node_exporter
+netdata
+
+################################################################################
+# SERVER — NETWORKING TOOLS
+################################################################################
+bind
+dnsmasq
+nftables
+iptables-nft
+wireguard-tools
+frr
+bird
+
+################################################################################
+# NETWORK DIAGNOSTICS
+################################################################################
+nmap
+tcpdump
+ethtool
+traceroute
+mtr
+netcat
+socat
+
+################################################################################
+# CLOUD INIT
+################################################################################
+cloud-init
+cloud-guest-utils
+
+################################################################################
+# VIRTUALIZATION — guest agent is the point; nested virt tools kept for lab use
+################################################################################
+qemu-guest-agent
+qemu-desktop
+libvirt
+edk2-ovmf
+
+################################################################################
+# BACKUP & SYNC
+################################################################################
+restic
+borg
+curl
+wget
+aria2
+
+################################################################################
+# TIME SYNC
+################################################################################
+chrony
+
+################################################################################
+# MAINTENANCE & RECOVERY TOOLS — Arch-based, just better
+################################################################################
+arch-install-scripts
+pkgfile
+arch-audit
+testdisk
+partclone
+ddrescue
+fsarchiver
+timeshift
+
+################################################################################
+# 🧰 SERVER TOOLBOX — Every maintainer's dream toolkit
+# Categorized for easy discovery. Run 'acreetionos-toolbox' to browse.
+################################################################################
+
+# ── WEB-BASED SERVER MANAGEMENT ─────────────────────────────────────────
+cockpit
+cockpit-machines
+cockpit-podman
+cockpit-storaged
+
+# ── SYSTEM MONITORING (INTERACTIVE) ─────────────────────────────────────
+glances
+atop
+bottom
+procs
+bpytop
+
+# ── TERMINAL FILE MANAGERS ──────────────────────────────────────────────
+mc
+ranger
+lf
+nnn
+
+# ── NETWORK PERFORMANCE & ANALYSIS ──────────────────────────────────────
+iperf3
+nethogs
+bmon
+vnstat
+jnettop
+wireshark-cli
+ngrep
+arp-scan
+
+# ── DISK USAGE ANALYZERS ────────────────────────────────────────────────
+duf
+dust
+gdu
+dua-cli
+
+# ── MODERN CLI REPLACEMENTS (better defaults) ───────────────────────────
+bat
+ripgrep
+fd
+jq
+yq
+delta
+sd
+cheat
+tldr
+tealdeer
+micro
+fzf
+zoxide
+procs
+bottom
+
+# ── DEVELOPMENT & BUILD TOOLS ───────────────────────────────────────────
+make
+cmake
+gcc
+gh
+glab
+httpie
+curlie
+
+# ── DATABASE CLIs ────────────────────────────────────────────────────────
+mycli
+pgcli
+usql
+
+# ── CONTAINER TOOLS ─────────────────────────────────────────────────────
+lazygit
+lazydocker
+ctop
+
+# ── SECURITY & HARDENING ─────────────────────────────────────────────────
+lynis
+rkhunter
+chkrootkit
+fail2ban
+clamav
+clamav-freshclam
+
+# ── LOG MANAGEMENT ───────────────────────────────────────────────────────
+lnav
+
+# ── REMOTE ACCESS ────────────────────────────────────────────────────────
+mosh
+byobu
+
+# ── TERMINAL RECORDING & SHARING ─────────────────────────────────────────
+asciinema
+
+# ── MISC POWER TOOLS ─────────────────────────────────────────────────────
+entr
+moreutils
+pv
+parallel
+rlwrap
+units
+bandwhich
+dog
+hexyl
+hyperfine
+choose
+xh
+zstd
+
+################################################################################
+# MISCELLANEOUS
+################################################################################
+mailcap
+mtools

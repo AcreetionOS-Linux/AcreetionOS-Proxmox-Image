@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AcreetionOS Server — Welcome Message
+# Displayed in a terminal window on first desktop login.
+# Explains the mission, tools, release schedule, and how to help.
+# ==============================================================================
+
+MARKER="/etc/acreetionos-welcome-done"
+USER_HOME="${HOME:-/home/$(whoami 2>/dev/null || echo admin)}"
+
+# Only run once
+if [[ -f "${MARKER}" ]]; then
+    exit 0
+fi
+
+# Read the docs
+MISSION_FILE="/usr/local/share/acreetionos/MISSION.txt"
+TOOLS_FILE="/usr/local/share/acreetionos/TOOLS.txt"
+
+cat > /tmp/acreetionos-welcome.txt << 'WELCOMEEOF'
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║            Welcome to AcreetionOS Server!                            ║
+║            Arch-based. Just better. More stable.                     ║
+║                                                                      ║
+║            #KeepLinuxFree                                            ║
+║            #AcreetionOSWillAlwaysBeFree                              ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Thank you for choosing AcreetionOS.
+
+Every major operating system vendor has decided that your computer is not
+yours. They ship telemetry, ads, and AI features you didn't ask for. They
+track what you do, sell your data, and lock you into walled gardens.
+
+We don't.
+
+AcreetionOS has:
+  ✗ No telemetry
+  ✗ No data collection
+  ✗ No ads
+  ✗ No "phone home" services
+  ✗ No corporate agenda
+  ✓ Just a libre, open-source OS that respects you
+
+We offer the same powerful experience that big corporations have, to
+people who truly deserve it — everyone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📅  RELEASE SCHEDULE
+
+AcreetionOS Server follows an LTS-based Semi-LTS schedule with quarterly
+ISO builds. Every January, April, July, and October a new ISO is built
+automatically with the latest updates.
+
+  Q1 (Jan) — LTS point release
+  Q2 (Apr) — Maintenance release
+  Q3 (Jul) — LTS point release
+  Q4 (Oct) — Maintenance release
+
+Each major release gets 2 years of support.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👥  USERS & PERMISSIONS
+
+This system uses dedicated user accounts with IAM-like permissions.
+Instead of 'sudo' for everything, use the right user for the right job:
+
+  admin    → Full system administration (wheel, docker, libvirt)
+  dbadmin  → Database operations (postgres, mysql groups)
+  webadmin → Web server management (http group)
+  ops      → Containers, monitoring, operations (docker, libvirt, journal)
+  backup   → Backup & recovery (storage group)
+
+Each group has passwordless sudo access to ONLY its tools.
+Members of 'wheel' have full sudo access (password required).
+
+Switch users with:  su - <username>
+Or SSH directly:    ssh <user>@<ip>
+
+🛠️  BUILT-IN TOOLS
+
+  acreetionos-profile     — Deployment profiles for 100+ VPS providers
+  acreetionos-wizard      — Master setup hub for everything
+  acreetionos-systemd     — Complete systemd admin (services, timers,
+                           journals, boot analysis, and more)
+  acreetionos-toolbox     — Browse & launch 100+ server tools (categorized)
+  acreetionos-maintain   — System maintenance menu (updates, firewall,
+                           docker, logs, disk health, and more)
+  acreetionos-strip-gui  — Remove the desktop, switch to TTY-only
+  acreetionos-install-gui — Reinstall the desktop
+
+  Or launch wizards from the Application menu → System → AcreetionOS.
+
+Most tools work without sudo if you're logged in as the right user:
+
+  ops@server    → docker, lazydocker, journalctl
+  dbadmin@server → mycli, pgcli, psql, mysql
+  webadmin@server → systemctl status nginx, certbot
+  admin@server  → everything
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚  DOCUMENTATION
+
+Full documentation is available in /usr/local/share/acreetionos/ and
+online at:
+
+  https://acreetionos.org
+  https://github.com/AcreetionOS-Code/acreetionos-server
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤝  WANT TO HELP?
+
+AcreetionOS is a libre community project with no corporate backing.
+
+  • Report bugs:  https://github.com/AcreetionOS-Code/acreetionos/issues
+  • Join Discord: https://discord.gg/VHqQkJASw7
+  • Contribute:   Fork us on GitHub
+  • Share:        #KeepLinuxFree #AcreetionOSWillAlwaysBeFree
+
+Every contribution matters. Welcome aboard. 💜
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Press ENTER to close this window and continue to your desktop.
+WELCOMEEOF
+
+# Show the welcome message
+clear
+cat /tmp/acreetionos-welcome.txt
+read -r
+
+# Mark as done
+sudo mkdir -p "$(dirname "${MARKER}")" 2>/dev/null || true
+sudo touch "${MARKER}" 2>/dev/null || true
+
+# Clean up
+rm -f /tmp/acreetionos-welcome.txt

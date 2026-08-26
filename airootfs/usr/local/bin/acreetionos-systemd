@@ -1,0 +1,955 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AcreetionOS Server — Systemd Administration Toolkit
+# Every systemd task a server admin could ever need.
+# Services, timers, journals, targets, boot analysis, and more.
+# ==============================================================================
+set -euo pipefail
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; CYAN='\033[0;36m'; MAG='\033[0;35m'; NC='\033[0m'
+BOLD='\033[1m'
+
+log()   { echo -e "${GREEN}[✓]${NC} $1"; }
+info()  { echo -e "${BLUE}[i]${NC} $1"; }
+warn()  { echo -e "${YELLOW}[!]${NC} $1"; }
+err()   { echo -e "${RED}[✗]${NC} $1"; }
+header(){ echo -e "\n${CYAN}${BOLD}━━━ $1 ━━━${NC}\n"; }
+
+# ── Prerequisites ──
+if [[ $EUID -ne 0 ]] && ! groups | grep -q '\bwheel\b'; then
+    echo "This tool requires admin access. Use 'su - admin' first."
+    exit 1
+fi
+[[ $EUID -ne 0 ]] && exec sudo "$0" "$@"
+
+# ── Utility Functions ──
+unit_running() { systemctl is-active --quiet "$1" 2>/dev/null; }
+unit_exists() { systemctl cat "$1" &>/dev/null; }
+unit_enabled() { systemctl is-enabled --quiet "$1" 2>/dev/null; }
+
+confirm() {
+    local msg="${1:-Are you sure?}"
+    local default="${2:-n}"
+    if [[ "$default" == "y" ]]; then
+        read -r -p "  ${msg} [Y/n]: " reply
+        [[ -z "$reply" || "$reply" =~ ^[Yy] ]]
+    else
+        read -r -p "  ${msg} [y/N]: " reply
+        [[ "$reply" =~ ^[Yy] ]]
+    fi
+}
+
+select_unit() {
+    local type="${1:-service}"
+    local units
+    mapfile -t units < <(systemctl list-units --type="$type" --all --no-legend --no-pager 2>/dev/null | awk '{print $1}')
+    if [[ ${#units[@]} -eq 0 ]]; then
+        warn "No $type units found."
+        return 1
+    fi
+    echo ""
+    echo "  ${BOLD}Available ${type}s:${NC}"
+    local i=0
+    for u in "${units[@]}"; do
+        i=$((i+1))
+        local status=" "
+        unit_running "$u" && status="${GREEN}●${NC}" || status="${RED}○${NC}"
+        unit_enabled "$u" && en="${GREEN}enabled${NC}" || en="${YELLOW}disabled${NC}"
+        printf "  ${CYAN}%3d)${NC} ${status} %-45s ${en}\n" "$i" "$u"
+    done
+    echo ""
+    read -r -p "  Select unit by number (or Enter to cancel): " sel
+    [[ -z "$sel" ]] && return 1
+    [[ "$sel" =~ ^[0-9]+$ ]] && [ "$sel" -ge 1 ] && [ "$sel" -le "${#units[@]}" ] || return 1
+    SELECTED="${units[$((sel-1))]}"
+    return 0
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MAIN MENU
+# ─────────────────────────────────────────────────────────────────────────────
+main_menu() {
+    while true; do
+        clear
+        echo -e "${CYAN}"
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║       AcreetionOS Server — Systemd Administration          ║"
+        echo "║  Every systemd task, at your fingertips                    ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo -e "${NC}"
+        echo "  ┌─ Service Management ─────────────────────────────────┐"
+        echo "  │  1)  List/Manage services                           │"
+        echo "  │  2)  Create a new service                           │"
+        echo "  │  3)  Edit a service unit                            │"
+        echo "  │  4)  Service dependencies & chain                   │"
+        echo "  │  5)  Resource usage per service (cgtop)             │"
+        echo "  └──────────────────────────────────────────────────────┘"
+        echo "  ┌─ Timer Management ──────────────────────────────────┐"
+        echo "  │  6)  List/Manage timers                            │"
+        echo "  │  7)  Create a new timer                            │"
+        echo "  └──────────────────────────────────────────────────────┘"
+        echo "  ┌─ Journal & Logs ────────────────────────────────────┐"
+        echo "  │  8)  View live journal (follow)                    │"
+        echo "  │  9)  View logs for a specific service              │"
+        echo "  │ 10)  Filter journal (priority/date/unit)           │"
+        echo "  │ 11)  Journal maintenance (size/rotate/vacuum)      │"
+        echo "  └──────────────────────────────────────────────────────┘"
+        echo "  ┌─ Boot & Performance ────────────────────────────────┐"
+        echo "  │ 12)  Boot analysis (systemd-analyze)               │"
+        echo "  │ 13)  Blame mode — what slowed the boot             │"
+        echo "  │ 14)  Critical chain — boot dependency tree         │"
+        echo "  │ 15)  Plot boot chart (SVG)                         │"
+        echo "  └──────────────────────────────────────────────────────┘"
+        echo "  ┌─ System State ──────────────────────────────────────┐"
+        echo "  │ 16)  Overview — system health at a glance          │"
+        echo "  │ 17)  Failed units & troubleshooting               │"
+        echo "  │ 18)  List all targets / switch target              │"
+        echo "  │ 19)  Sockets — socket-activated services           │"
+        echo "  │ 20)  User services (--user scope)                  │"
+        echo "  └──────────────────────────────────────────────────────┘"
+        echo "  ┌─ Advanced ──────────────────────────────────────────┐"
+        echo "  │ 21)  Systemd-delta — what overrides what           │"
+        echo "  │ 22)  Run command as transient service              │"
+        echo "  │ 23)  Manage tmpfiles (systemd-tmpfiles)            │"
+        echo "  │ 24)  CGroup tree (systemd-cgls)                    │"
+        echo "  │ 25)  Kernel parameters & boot loader               │"
+        echo "  └──────────────────────────────────────────────────────┘"
+        echo ""
+        echo "  q)  Quit"
+        echo ""
+        read -r -p "  Choice: " choice
+        case "$choice" in
+            1)  service_management ;;
+            2)  service_create ;;
+            3)  service_edit ;;
+            4)  service_deps ;;
+            5)  service_cgtop ;;
+            6)  timer_management ;;
+            7)  timer_create ;;
+            8)  journal_follow ;;
+            9)  journal_service ;;
+            10) journal_filter ;;
+            11) journal_maintenance ;;
+            12) boot_analyze ;;
+            13) boot_blame ;;
+            14) boot_critical_chain ;;
+            15) boot_plot ;;
+            16) system_overview ;;
+            17) system_failed ;;
+            18) target_management ;;
+            19) socket_management ;;
+            20) user_services ;;
+            21) advanced_delta ;;
+            22) advanced_run ;;
+            23) advanced_tmpfiles ;;
+            24) advanced_cgls ;;
+            25) advanced_kernel ;;
+            q|Q) echo ""; log "Godspeed, admin."; exit 0 ;;
+            *) warn "Invalid choice."; sleep 1 ;;
+        esac
+    done
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1) SERVICE MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+service_management() {
+    while true; do
+        clear
+        header "Service Management"
+        echo "  1)  List all running services"
+        echo "  2)  List all services (including inactive)"
+        echo "  3)  List failed services"
+        echo "  4)  Start a service"
+        echo "  5)  Stop a service"
+        echo "  6)  Restart a service"
+        echo "  7)  Reload a service"
+        echo "  8)  Enable a service (start on boot)"
+        echo "  9)  Disable a service"
+        echo " 10)  Enable + start immediately"
+        echo " 11)  Disable + stop immediately"
+        echo " 12)  Mask a service (prevent all starts)"
+        echo " 13)  Unmask a service"
+        echo " 14)  View service status + recent logs"
+        echo " 15)  View complete service unit file"
+        echo ""
+        echo "  b)  Back to main menu"
+        echo ""
+        read -r -p "  Choice: " sc
+        case "$sc" in
+            1)
+                header "Running Services"
+                systemctl list-units --type=service --state=running --no-pager --no-legend | \
+                    awk '{printf "  %-45s %s\n", $1, $5}'
+                echo ""; read -r -p "Press Enter..."
+                ;;
+            2)
+                header "All Services"
+                systemctl list-units --type=service --all --no-pager --no-legend | \
+                    awk '{printf "  %-45s %-10s %s\n", $1, $3, $4}'
+                echo ""; read -r -p "Press Enter..."
+                ;;
+            3)
+                header "Failed Services"
+                if systemctl --failed --no-pager --no-legend 2>/dev/null | grep -q .; then
+                    systemctl --failed --no-pager --no-legend | \
+                        awk '{printf "  %-45s %s\n", $1, $3}'
+                else
+                    log "No failed services. Everything is healthy."
+                fi
+                echo ""; read -r -p "Press Enter..."
+                ;;
+            4|5|6|7|8|9|10|11|12|13|14|15)
+                if [[ "$sc" == "14" ]]; then
+                    header "View Service Status"
+                elif [[ "$sc" == "15" ]]; then
+                    header "View Service Unit File"
+                else
+                    opmap=( [4]="Start" [5]="Stop" [6]="Restart" [7]="Reload"
+                            [8]="Enable" [9]="Disable" [10]="Enable+Start"
+                            [11]="Disable+Stop" [12]="Mask" [13]="Unmask" )
+                    header "${opmap[$sc]}"
+                fi
+                if select_unit "service"; then
+                    unit="$SELECTED"
+                    case "$sc" in
+                        4)  systemctl start "$unit" && log "Started $unit" || err "Failed to start $unit" ;;
+                        5)  systemctl stop "$unit" && log "Stopped $unit" || err "Failed to stop $unit" ;;
+                        6)  systemctl restart "$unit" && log "Restarted $unit" || err "Failed to restart $unit" ;;
+                        7)  systemctl reload "$unit" 2>/dev/null && log "Reloaded $unit" || warn "$unit does not support reload" ;;
+                        8)  systemctl enable "$unit" && log "Enabled $unit" || err "Failed to enable $unit" ;;
+                        9)  systemctl disable "$unit" && log "Disabled $unit" || err "Failed to disable $unit" ;;
+                        10) systemctl enable --now "$unit" && log "Enabled+started $unit" || err "Failed" ;;
+                        11) systemctl disable --now "$unit" && log "Disabled+stopped $unit" || err "Failed" ;;
+                        12) confirm "Mask $unit? This will prevent all starts (manual & automatic)" && systemctl mask "$unit" && log "Masked $unit" || warn "Cancelled" ;;
+                        13) systemctl unmask "$unit" && log "Unmasked $unit" || err "Failed" ;;
+                        14) clear && systemctl status "$unit" 2>&1 | head -40 && echo "" && journalctl -u "$unit" -n 30 --no-pager --no-hostname 2>/dev/null | tail -30 ;;
+                        15) systemctl cat "$unit" 2>/dev/null | head -80 ;;
+                    esac
+                    echo ""; read -r -p "Press Enter..."
+                fi
+                ;;
+            b|B) return ;;
+        esac
+    done
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2) CREATE A SERVICE
+# ─────────────────────────────────────────────────────────────────────────────
+service_create() {
+    clear
+    header "Create a New Systemd Service"
+    echo "  Enter the details for your new service."
+    echo "  Leave blank and press Enter to cancel."
+    echo ""
+    read -r -p "  Service name (no .service suffix): " sname
+    [[ -z "$sname" ]] && return
+    read -r -p "  Description: " sdesc
+    read -r -p "  ExecStart command (full path): " sexec
+    [[ -z "$sexec" ]] && return
+    read -r -p "  User to run as (default=root): " suser
+    read -r -p "  Working directory: " swd
+    read -r -p "  Restart policy (no/always/on-failure, default=always): " srestart
+    srestart="${srestart:-always}"
+    read -r -p "  After target (default=network-online.target): " safter
+    safter="${safter:-network-online.target}"
+    read -r -p "  Wants (optional dependencies): " swants
+    read -r -p "  Environment vars (KEY=value, space separated): " senv
+
+    cat > "/etc/systemd/system/${sname}.service" << EOF
+[Unit]
+Description=${sdesc:-$sname service}
+After=${safter}
+${swants:+Wants=${swants}}
+
+[Service]
+ExecStart=${sexec}
+${suser:+User=${suser}}
+${swd:+WorkingDirectory=${swd}}
+Restart=${srestart}
+RestartSec=5
+${senv:+Environment=${senv}}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    log "Service ${sname}.service created."
+    echo ""
+    if confirm "Enable and start now?" "y"; then
+        systemctl enable --now "${sname}.service" && log "${sname}.service is now running"
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3) EDIT A SERVICE
+# ─────────────────────────────────────────────────────────────────────────────
+service_edit() {
+    header "Edit a Service Unit"
+    if select_unit "service"; then
+        unit="$SELECTED"
+        local_path="/etc/systemd/system/${unit}"
+        if [[ ! -f "$local_path" ]]; then
+            # Create override
+            mkdir -p "/etc/systemd/system/${unit}.d"
+            info "No local override exists. Creating override directory."
+            echo "  Opening editor for drop-in override..."
+            echo "  Available: ${BOLD}${unit}${NC}"
+            systemctl cat "$unit" 2>/dev/null
+            echo ""
+            read -r -p "  Press Enter to edit override with ${EDITOR:-nano}..."
+            ${EDITOR:-nano} "/etc/systemd/system/${unit}.d/override.conf"
+            systemctl daemon-reload
+            log "Override applied to ${unit}"
+        else
+            echo "  Opening direct unit file in ${EDITOR:-nano}..."
+            ${EDITOR:-nano} "$local_path"
+            systemctl daemon-reload
+            log "${unit} updated"
+        fi
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4) SERVICE DEPENDENCIES
+# ─────────────────────────────────────────────────────────────────────────────
+service_deps() {
+    header "Service Dependencies"
+    if select_unit "service"; then
+        unit="$SELECTED"
+        echo ""
+        echo "  ${BOLD}${unit}${NC}"
+        echo ""
+        echo "  ${YELLOW}Requires:${NC}"
+        systemctl show -p Requires "$unit" 2>/dev/null | sed 's/Requires=//' | tr ' ' '\n' | sed 's/^/    /'
+        echo "  ${YELLOW}Wants:${NC}"
+        systemctl show -p Wants "$unit" 2>/dev/null | sed 's/Wants=//' | tr ' ' '\n' | sed 's/^/    /'
+        echo "  ${YELLOW}After:${NC}"
+        systemctl show -p After "$unit" 2>/dev/null | sed 's/After=//' | tr ' ' '\n' | sed 's/^/    /'
+        echo "  ${YELLOW}Before:${NC}"
+        systemctl show -p Before "$unit" 2>/dev/null | sed 's/Before=//' | tr ' ' '\n' | sed 's/^/    /'
+        echo "  ${YELLOW}RequiredBy:${NC}"
+        systemctl show -p RequiredBy "$unit" 2>/dev/null | sed 's/RequiredBy=//' | tr ' ' '\n' | sed 's/^/    /'
+        echo ""
+        echo "  ${YELLOW}Dependency tree:${NC}"
+        systemctl list-dependencies "$unit" --no-pager 2>/dev/null | head -40
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5) CGROUP TOP
+# ─────────────────────────────────────────────────────────────────────────────
+service_cgtop() {
+    header "Resource Usage by Service (systemd-cgtop)"
+    echo "  Press q to exit cgtop"
+    echo ""
+    read -r -p "  Press Enter to launch..."
+    systemd-cgtop --depth=2 2>/dev/null || warn "systemd-cgtop not available"
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6) TIMER MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+timer_management() {
+    while true; do
+        clear
+        header "Timer Management"
+        echo "  1)  List all timers (next run time)"
+        echo "  2)  List all timers (detailed)"
+        echo "  3)  Start a timer"
+        echo "  4)  Stop a timer"
+        echo "  5)  Enable a timer"
+        echo "  6)  Disable a timer"
+        echo "  7)  View timer status + unit file"
+        echo "  8)  Manually trigger a timer (run now)"
+        echo ""
+        echo "  b)  Back"
+        echo ""
+        read -r -p "  Choice: " tc
+        case "$tc" in
+            1)
+                header "Timer Schedule (next runs)"
+                systemctl list-timers --all --no-pager --no-legend 2>/dev/null | \
+                    awk '{printf "  %-30s %-20s %s\n", $5, $1, $3}' | head -40
+                echo ""; read -r -p "Press Enter..."
+                ;;
+            2)
+                systemctl list-timers --all --no-pager 2>/dev/null | head -50
+                echo ""; read -r -p "Press Enter..."
+                ;;
+            3|4|5|6|7|8)
+                opmap=( [3]="Start" [4]="Stop" [5]="Enable" [6]="Disable" [7]="Status" [8]="Trigger" )
+                header "${opmap[$tc]} Timer"
+                if select_unit "timer"; then
+                    unit="$SELECTED"
+                    case "$tc" in
+                        3) systemctl start "$unit" && log "Started $unit" ;;
+                        4) systemctl stop "$unit" && log "Stopped $unit" ;;
+                        5) systemctl enable "$unit" && log "Enabled $unit" ;;
+                        6) systemctl disable "$unit" && log "Disabled $unit" ;;
+                        7) systemctl status "$unit" --no-pager 2>/dev/null | head -30 ;;
+                        8) systemctl start "$unit" && log "Triggered $unit (ran now)" ;;
+                    esac
+                    echo ""; read -r -p "Press Enter..."
+                fi
+                ;;
+            b|B) return ;;
+        esac
+    done
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7) CREATE A TIMER
+# ─────────────────────────────────────────────────────────────────────────────
+timer_create() {
+    clear
+    header "Create a New Systemd Timer"
+    echo "  A timer consists of a .service and a .timer file."
+    echo ""
+    read -r -p "  Timer name (no suffix): " tname
+    [[ -z "$tname" ]] && return
+    read -r -p "  Description: " tdesc
+    echo ""
+    echo "  ${YELLOW}Schedule format examples:${NC}"
+    echo "    Mon *-*-* 03:00:00     — every Monday at 3am"
+    echo "    *-*-* 02:30:00         — daily at 2:30am"
+    echo "    *:0/15                 — every 15 minutes"
+    echo "    hourly                 — hourly"
+    echo "    daily                  — daily"
+    echo "    weekly                 — weekly"
+    echo ""
+    read -r -p "  OnCalendar schedule: " tcal
+    [[ -z "$tcal" ]] && return
+    read -r -p "  Command to execute (full path): " texec
+    [[ -z "$texec" ]] && texec="/usr/bin/true"
+    
+    # Create the service file
+    cat > "/etc/systemd/system/${tname}.service" << EOF
+[Unit]
+Description=${tdesc:-$tname service}
+
+[Service]
+ExecStart=${texec}
+Type=oneshot
+EOF
+
+    # Create the timer file
+    cat > "/etc/systemd/system/${tname}.timer" << EOF
+[Unit]
+Description=${tdesc:-$tname timer}
+Requires=${tname}.service
+
+[Timer]
+OnCalendar=${tcal}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    systemctl daemon-reload
+    log "Timer ${tname}.timer created."
+    echo ""
+    if confirm "Enable and start timer now?" "y"; then
+        systemctl enable --now "${tname}.timer" && log "${tname}.timer is active"
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8) JOURNAL FOLLOW
+# ─────────────────────────────────────────────────────────────────────────────
+journal_follow() {
+    header "Live Journal (Follow Mode)"
+    echo "  Showing real-time logs. Press Ctrl+C to stop."
+    echo ""
+    read -r -p "  Filter by unit (or press Enter for all): " jfilter
+    echo ""
+    if [[ -n "$jfilter" ]]; then
+        journalctl -fu "$jfilter" --no-hostname -o short-iso 2>/dev/null || warn "Failed"
+    else
+        journalctl -f --no-hostname -o short-iso 2>/dev/null || warn "Failed"
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9) JOURNAL BY SERVICE
+# ─────────────────────────────────────────────────────────────────────────────
+journal_service() {
+    header "View Logs for a Service"
+    if select_unit "service"; then
+        clear
+        systemctl status "$SELECTED" --no-pager -n 0 2>/dev/null | head -10
+        echo ""
+        read -r -p "  Number of recent log lines [30]: " jlines
+        jlines="${jlines:-30}"
+        journalctl -u "$SELECTED" -n "$jlines" --no-pager --no-hostname -o short-iso 2>/dev/null | tail -"$jlines"
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10) FILTER JOURNAL
+# ─────────────────────────────────────────────────────────────────────────────
+journal_filter() {
+    clear
+    header "Filter Journal"
+    echo "  1)  By priority (emerg/alert/crit/err/warning/info/debug)"
+    echo "  2)  By date range"
+    echo "  3)  By unit + priority"
+    echo "  4)  Kernel messages (dmesg)"
+    echo "  5)  Last boot logs"
+    echo "  6)  Previous boot logs"
+    echo ""
+    read -r -p "  Choice: " fc
+    case "$fc" in
+        1)
+            echo "  Priorities: 0=emerg, 1=alert, 2=crit, 3=err, 4=warning, 5=notice, 6=info, 7=debug"
+            read -r -p "  Priority level (0-7) [3]: " pri
+            pri="${pri:-3}"
+            journalctl -p "$pri" -n 50 --no-pager --no-hostname 2>/dev/null
+            ;;
+        2)
+            echo "  Date format: '2024-01-01 00:00:00' or 'yesterday', 'today'"
+            read -r -p "  Since: " since
+            read -r -p "  Until: " until
+            if [[ -n "$since" ]]; then
+                journalctl --since="$since" ${until:+--until="$until"} -n 50 --no-pager --no-hostname 2>/dev/null
+            fi
+            ;;
+        3)
+            read -r -p "  Unit name: " junit
+            read -r -p "  Priority (0-7) [3]: " jpri
+            jpri="${jpri:-3}"
+            journalctl -u "$junit" -p "$jpri" -n 50 --no-pager --no-hostname 2>/dev/null || warn "No matching entries"
+            ;;
+        4)
+            dmesg --human 2>/dev/null | tail -50 || dmesg | tail -50
+            ;;
+        5)
+            journalctl -b -n 50 --no-pager --no-hostname 2>/dev/null
+            ;;
+        6)
+            journalctl -b -1 -n 50 --no-pager --no-hostname 2>/dev/null || warn "No previous boot logs available"
+            ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 11) JOURNAL MAINTENANCE
+# ─────────────────────────────────────────────────────────────────────────────
+journal_maintenance() {
+    clear
+    header "Journal Maintenance"
+    echo "  Current journal usage:"
+    journalctl --disk-usage 2>/dev/null
+    echo ""
+    echo "  1)  Rotate journal (log rotation)"
+    echo "  2)  Vacuum to 500MB (keep recent only)"
+    echo "  3)  Vacuum to 200MB (aggressive)"
+    echo "  4)  Vacuum by time (keep last 2 weeks)"
+    echo "  5)  Show detailed usage stats"
+    echo ""
+    read -r -p "  Choice: " jc
+    case "$jc" in
+        1) journalctl --rotate 2>/dev/null && log "Journal rotated" ;;
+        2) journalctl --vacuum-size=500M 2>/dev/null && log "Journal vacuumed to 500M" ;;
+        3) journalctl --vacuum-size=200M 2>/dev/null && log "Journal vacuumed to 200M" ;;
+        4) read -r -p "  Keep days [14]: " jdays && jdays="${jdays:-14}" && journalctl --vacuum-time="${jdays}d" 2>/dev/null && log "Journal vacuumed to ${jdays} days" ;;
+        5) echo "" && journalctl --list-boots --no-pager 2>/dev/null | head -20 ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 12) BOOT ANALYZE
+# ─────────────────────────────────────────────────────────────────────────────
+boot_analyze() {
+    header "Boot Analysis"
+    echo "  ${BOLD}Overall boot time:${NC}"
+    systemd-analyze 2>/dev/null
+    echo ""
+    read -r -p "  Compare with previous boot? [y/N]: " cc
+    if [[ "$cc" =~ ^[Yy] ]]; then
+        echo ""
+        echo "  ${BOLD}Previous boot comparison:${NC}"
+        journalctl -b -1 -o short-monotonic --no-hostname 2>/dev/null | grep -i "startup finished" | head -3 || echo "  (no previous boot data)"
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 13) BOOT BLAME
+# ─────────────────────────────────────────────────────────────────────────────
+boot_blame() {
+    header "Who Slowed the Boot? (systemd-analyze blame)"
+    echo ""
+    systemd-analyze blame 2>/dev/null | head -30
+    echo ""
+    info "These are the services that took the longest to start."
+    echo "  Consider disabling unnecessary ones with 'systemctl disable <service>'"
+    echo ""
+    read -r -p "  Show all (not just top 30)? [y/N]: " sa
+    [[ "$sa" =~ ^[Yy] ]] && systemd-analyze blame 2>/dev/null
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 14) CRITICAL CHAIN
+# ─────────────────────────────────────────────────────────────────────────────
+boot_critical_chain() {
+    header "Critical Chain — Boot Dependency Tree"
+    echo "  The critical chain shows what actually slowed boot."
+    echo "  These services are on the path from power-on to login."
+    echo ""
+    systemd-analyze critical-chain 2>/dev/null | head -40
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 15) BOOT PLOT
+# ─────────────────────────────────────────────────────────────────────────────
+boot_plot() {
+    header "Generate Boot Plot (SVG)"
+    local plot_file="/tmp/boot-plot.svg"
+    if systemd-analyze plot > "$plot_file" 2>/dev/null; then
+        log "Boot plot saved to ${plot_file}"
+        if command -v xdg-open &>/dev/null; then
+            if confirm "Open in browser?" "y"; then
+                xdg-open "$plot_file" 2>/dev/null || true
+            fi
+        fi
+    else
+        warn "Failed to generate boot plot"
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 16) SYSTEM OVERVIEW
+# ─────────────────────────────────────────────────────────────────────────────
+system_overview() {
+    clear
+    header "System Overview — Health at a Glance"
+    echo "  ${BOLD}Uptime:${NC}      $(uptime -p 2>/dev/null || uptime)"
+    echo "  ${BOLD}Kernel:${NC}      $(uname -r)"
+    echo "  ${BOLD}Arch:${NC}        $(uname -m)"
+    echo "  ${BOLD}Hostname:${NC}    $(hostname)"
+    echo ""
+    echo "  ${BOLD}Systemd:${NC}     $(systemctl --version 2>/dev/null | head -1)"
+    echo ""
+    echo "  ${BOLD}Units loaded:${NC}    $(systemctl list-units --all --no-legend 2>/dev/null | wc -l)"
+    echo "  ${BOLD}Running services:${NC} $(systemctl list-units --type=service --state=running --no-legend 2>/dev/null | wc -l)"
+    echo "  ${BOLD}Failed units:${NC}     $(systemctl --failed --no-legend 2>/dev/null | wc -l)"
+    echo "  ${BOLD}Active timers:${NC}    $(systemctl list-timers --no-legend 2>/dev/null | wc -l)"
+    echo ""
+    echo "  ${BOLD}Default target:${NC}   $(systemctl get-default 2>/dev/null)"
+    echo "  ${BOLD}Current target:${NC}   $(systemctl list-units --type=target --state=active --no-legend 2>/dev/null | head -1 | awk '{print $1}')"
+    echo ""
+    echo "  ${BOLD}Journal:${NC}     $(journalctl --disk-usage 2>/dev/null)"
+    echo ""
+    # Memory
+    mem_total=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{printf "%.0f", $2/1024}')
+    mem_avail=$(grep MemAvailable /proc/meminfo 2>/dev/null | awk '{printf "%.0f", $2/1024}')
+    echo "  ${BOLD}Memory:${NC}      ${mem_avail}MB available / ${mem_total}MB total"
+    echo ""
+    # Load
+    echo "  ${BOLD}Load:${NC}        $(cat /proc/loadavg 2>/dev/null)"
+    echo ""
+    # Failed units summary
+    if systemctl --failed --no-legend 2>/dev/null | grep -q .; then
+        warn "⚠ There are failed units! Check option 17."
+    else
+        log "All units healthy."
+    fi
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 17) FAILED UNITS
+# ─────────────────────────────────────────────────────────────────────────────
+system_failed() {
+    clear
+    header "Failed Units — Troubleshooting"
+    if ! systemctl --failed --no-legend 2>/dev/null | grep -q .; then
+        log "No failed units. Everything is healthy."
+        echo ""; read -r -p "Press Enter..."
+        return
+    fi
+    systemctl --failed --no-pager 2>/dev/null
+    echo ""
+    echo "  1)  Reset all failed units"
+    echo "  2)  View logs for a specific failed unit"
+    echo "  3)  Reset and restart a specific failed unit"
+    echo ""
+    read -r -p "  Choice: " frc
+    case "$frc" in
+        1)
+            confirm "Reset ALL failed units?" && systemctl reset-failed && log "Failed units reset"
+            ;;
+        2)
+            echo ""
+            read -r -p "  Unit name: " funit
+            journalctl -u "$funit" -n 40 --no-pager --no-hostname 2>/dev/null | tail -40
+            ;;
+        3)
+            echo ""
+            read -r -p "  Unit name: " funit
+            systemctl reset-failed "$funit" 2>/dev/null || true
+            systemctl restart "$funit" 2>/dev/null && log "Restarted $funit" || err "Failed to restart"
+            ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 18) TARGET MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+target_management() {
+    clear
+    header "Target Management"
+    echo "  ${BOLD}Current default:${NC} $(systemctl get-default 2>/dev/null)"
+    echo "  ${BOLD}Current active:${NC}  $(systemctl list-units --type=target --state=active --no-legend 2>/dev/null | head -1 | awk '{print $1}')"
+    echo ""
+    echo "  Available targets:"
+    systemctl list-units --type=target --all --no-legend --no-pager 2>/dev/null | awk '{printf "  %-30s %s\n", $1, $4}'
+    echo ""
+    echo "  1)  Switch to multi-user.target (TTY mode)"
+    echo "  2)  Switch to graphical.target (Desktop mode)"
+    echo "  3)  Set default to multi-user.target"
+    echo "  4)  Set default to graphical.target"
+    echo "  5)  Isolate a specific target"
+    echo ""
+    read -r -p "  Choice: " tc
+    case "$tc" in
+        1)
+            if confirm "Switch to multi-user.target now? Current session will change."; then
+                systemctl isolate multi-user.target && log "Switched to multi-user.target"
+            fi
+            ;;
+        2)
+            if confirm "Switch to graphical.target now?"; then
+                systemctl isolate graphical.target && log "Switched to graphical.target"
+            fi
+            ;;
+        3)
+            systemctl set-default multi-user.target && log "Default target set to multi-user (TTY on next boot)"
+            ;;
+        4)
+            systemctl set-default graphical.target && log "Default target set to graphical (desktop on next boot)"
+            ;;
+        5)
+            read -r -p "  Target name: " tiso
+            confirm "Isolate ${tiso}? This will stop all units not in this target." && \
+                systemctl isolate "$tiso" && log "Isolated to $tiso"
+            ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 19) SOCKET MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+socket_management() {
+    clear
+    header "Socket Management (Socket-Activated Services)"
+    echo "  1)  List all sockets"
+    echo "  2)  View socket status"
+    echo "  3)  Enable a socket"
+    echo "  4)  Disable a socket"
+    echo "  5)  Start a socket"
+    echo "  6)  Stop a socket"
+    echo ""
+    read -r -p "  Choice: " sc
+    case "$sc" in
+        1)
+            systemctl list-units --type=socket --all --no-pager --no-legend 2>/dev/null | \
+                awk '{printf "  %-45s %-10s %s\n", $1, $3, $4}'
+            ;;
+        2|3|4|5|6)
+            opmap=( [2]="Status" [3]="Enable" [4]="Disable" [5]="Start" [6]="Stop" )
+            header "${opmap[$sc]} Socket"
+            if select_unit "socket"; then
+                case "$sc" in
+                    2) systemctl status "$SELECTED" --no-pager 2>/dev/null | head -25 ;;
+                    3) systemctl enable "$SELECTED" && log "Enabled $SELECTED" ;;
+                    4) systemctl disable "$SELECTED" && log "Disabled $SELECTED" ;;
+                    5) systemctl start "$SELECTED" && log "Started $SELECTED" ;;
+                    6) systemctl stop "$SELECTED" && log "Stopped $SELECTED" ;;
+                esac
+            fi
+            ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 20) USER SERVICES
+# ─────────────────────────────────────────────────────────────────────────────
+user_services() {
+    clear
+    header "User Services (--user scope)"
+    whoami
+    echo ""
+    echo "  1)  List my user services"
+    echo "  2)  Enable lingering for a user"
+    echo "  3)  Manage a specific user's services"
+    echo ""
+    read -r -p "  Choice: " uc
+    case "$uc" in
+        1)
+            systemctl --user list-units --type=service --all --no-pager --no-legend 2>/dev/null | \
+                awk '{printf "  %-45s %s\n", $1, $4}' || warn "No user services or not running as user"
+            ;;
+        2)
+            read -r -p "  Username: " ulinger
+            if id "$ulinger" &>/dev/null; then
+                loginctl enable-linger "$ulinger" 2>/dev/null && log "Lingering enabled for $ulinger" || err "Failed"
+            fi
+            ;;
+        3)
+            read -r -p "  Switch to user (su - <user> first, then re-run this tool): " ux
+            info "Use: su - <username> -c 'systemctl --user list-units'"
+            ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 21) SYSTEMD-DELTA
+# ─────────────────────────────────────────────────────────────────────────────
+advanced_delta() {
+    header "Systemd-delta — What Overrides What"
+    echo "  Shows differences between original unit files and overrides."
+    echo ""
+    systemd-delta --no-pager 2>/dev/null | head -60
+    echo ""
+    read -r -p "  Show all? [y/N]: " sd
+    [[ "$sd" =~ ^[Yy] ]] && systemd-delta --no-pager 2>/dev/null
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 22) RUN AS TRANSIENT SERVICE
+# ─────────────────────────────────────────────────────────────────────────────
+advanced_run() {
+    clear
+    header "Run Command as Transient Service"
+    echo "  Run any command as a temporary systemd service."
+    echo "  Great for one-off tasks that need proper service tracking."
+    echo ""
+    read -r -p "  Command to run: " trun
+    [[ -z "$trun" ]] && return
+    read -r -p "  Service name [temp-cmd]: " tname
+    tname="${tname:-temp-cmd}"
+    echo ""
+    echo "  Running: ${BOLD}${trun}${NC}"
+    echo "  This will run in the foreground. Press Ctrl+C to stop."
+    echo ""
+    read -r -p "  Press Enter to launch..."
+    systemd-run --unit="$tname" --remain-after-exit bash -c "$trun" 2>/dev/null || \
+        systemd-run --user --unit="$tname" --remain-after-exit bash -c "$trun" 2>/dev/null || \
+        warn "Failed to create transient service"
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 23) TMPFILES
+# ─────────────────────────────────────────────────────────────────────────────
+advanced_tmpfiles() {
+    clear
+    header "Systemd-tmpfiles Management"
+    echo "  1)  List all tmpfiles configs"
+    echo "  2)  Create files/dirs as defined in configs"
+    echo "  3)  Clean temp files as defined in configs"
+    echo "  4)  Remove old files as defined in configs"
+    echo ""
+    read -r -p "  Choice: " tfc
+    case "$tfc" in
+        1)
+            echo "  Config files in /etc/tmpfiles.d/ and /usr/lib/tmpfiles.d/:"
+            find /etc/tmpfiles.d /usr/lib/tmpfiles.d -name "*.conf" 2>/dev/null | sort | sed 's/^/  /'
+            ;;
+        2) systemd-tmpfiles --create 2>/dev/null && log "Tmpfiles created" || warn "Failed" ;;
+        3) systemd-tmpfiles --clean 2>/dev/null && log "Tmpfiles cleaned" || warn "Failed" ;;
+        4) systemd-tmpfiles --remove 2>/dev/null && log "Old files removed" || warn "Failed" ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 24) CGROUP TREE
+# ─────────────────────────────────────────────────────────────────────────────
+advanced_cgls() {
+    header "CGroup Tree (systemd-cgls)"
+    echo "  Shows the cgroup hierarchy of running services."
+    echo ""
+    systemd-cgls --no-pager 2>/dev/null | head -80
+    echo ""
+    read -r -p "  Show full tree? [y/N]: " scg
+    [[ "$scg" =~ ^[Yy] ]] && systemd-cgls --no-pager 2>/dev/null
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 25) KERNEL PARAMETERS
+# ─────────────────────────────────────────────────────────────────────────────
+advanced_kernel() {
+    clear
+    header "Kernel Parameters & Boot Loader"
+    echo "  ${BOLD}Current kernel cmdline:${NC}"
+    cat /proc/cmdline 2>/dev/null | fold -s
+    echo ""
+    echo "  ${BOLD}GRUB config:${NC}"
+    grep -E "GRUB_CMDLINE|GRUB_TIMEOUT|GRUB_DEFAULT" /etc/default/grub 2>/dev/null | sed 's/^/  /'
+    echo ""
+    echo "  1)  Edit kernel parameters (GRUB_CMDLINE_LINUX)"
+    echo "  2)  Add a kernel parameter"
+    echo "  3)  Remove a kernel parameter"
+    echo "  4)  Regenerate GRUB config"
+    echo ""
+    read -r -p "  Choice: " kc
+    case "$kc" in
+        1)
+            ${EDITOR:-nano} /etc/default/grub
+            if confirm "Regenerate GRUB config now?"; then
+                grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null && log "GRUB config regenerated"
+            fi
+            ;;
+        2)
+            read -r -p "  Parameter to add (e.g., 'quiet splash'): " kparam
+            if grep -q 'GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub; then
+                sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${kparam}\"/" /etc/default/grub
+                log "Added '${kparam}' to kernel cmdline"
+                if confirm "Regenerate GRUB config now?"; then
+                    grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null && log "GRUB regenerated"
+                fi
+            fi
+            ;;
+        3)
+            read -r -p "  Parameter to remove: " kremove
+            if grep -q 'GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub; then
+                sed -i "s/ ${kremove}//g;s/${kremove} //g" /etc/default/grub
+                log "Removed '${kremove}' from kernel cmdline"
+                if confirm "Regenerate GRUB config now?"; then
+                    grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null && log "GRUB regenerated"
+                fi
+            fi
+            ;;
+        4)
+            grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null && log "GRUB config regenerated" || err "Failed"
+            ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+}
+
+# ── Launch ──
+main_menu

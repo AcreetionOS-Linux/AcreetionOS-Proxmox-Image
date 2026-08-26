@@ -1,0 +1,22 @@
+[Unit]
+Description=AcreetionOS Server First-Boot Wizard
+Documentation=https://github.com/AcreetionOS-Code/acreetionos-server
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/etc/acreetionos-firstboot-done
+Before=lightdm.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/acreetionos-firstboot tty
+ExecStartPost=/usr/bin/systemctl disable acreetionos-firstboot.service
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TimeoutStartSec=120
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

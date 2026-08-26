@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Database Setup
+Comment=Initialize MariaDB, PostgreSQL, create databases and users
+Exec=pkexec acreetionos-wizard-database
+Icon=server-database
+Terminal=true
+Categories=System;Database;Settings;
+StartupNotify=false

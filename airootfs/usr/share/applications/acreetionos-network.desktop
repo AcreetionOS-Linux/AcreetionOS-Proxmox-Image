@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Network
+Comment=Configure static IP, bridges, VLANs, DNS
+Exec=pkexec acreetionos-wizard-network
+Icon=network-workgroup
+Terminal=true
+Categories=System;Network;Settings;
+StartupNotify=false

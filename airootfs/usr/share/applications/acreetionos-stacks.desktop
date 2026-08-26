@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Docker Stacks
+Comment=Deploy nginx+php, WordPress, Nextcloud, monitoring stack, and more
+Exec=pkexec acreetionos-wizard-stacks
+Icon=docker
+Terminal=true
+Categories=System;Development;Settings;
+StartupNotify=false

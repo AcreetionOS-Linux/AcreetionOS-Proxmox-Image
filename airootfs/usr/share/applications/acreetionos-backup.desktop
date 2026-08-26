@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Backup
+Comment=Configure restic, borg, or timeshift backups
+Exec=pkexec acreetionos-wizard-backup
+Icon=drive-harddisk
+Terminal=true
+Categories=System;Settings;
+StartupNotify=false

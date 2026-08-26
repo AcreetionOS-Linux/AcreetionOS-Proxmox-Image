@@ -1,0 +1,303 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AcreetionOS Server — Deployment Profile Selector
+# Choose your VPS provider + industry → get optimized cloud-init + setup.
+# Covers 100+ providers across 7 regions with 16 industry profiles.
+# ==============================================================================
+set -euo pipefail
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
+
+PROV_FILE="/usr/local/share/acreetionos/providers/providers.tsv"
+IND_FILE="/usr/local/share/acreetionos/industries/industries.tsv"
+OUTPUT_DIR="/root/deployment-profiles"
+mkdir -p "$OUTPUT_DIR"
+
+CURRENT_PROVIDER=""
+CURRENT_INDUSTRY=""
+
+# ── Parse provider data ──
+list_providers_by_tier() {
+    local tier="$1"
+    grep -v '^#' "$PROV_FILE" | grep -v '^$' | grep "\b$tier\b" | sort -t'|' -k3
+}
+
+list_all_providers() {
+    grep -v '^#' "$PROV_FILE" | grep -v '^$' | sort -t'|' -k3
+}
+
+list_industries() {
+    grep -v '^#' "$IND_FILE" | grep -v '^$' | sort
+}
+
+get_provider_field() {
+    local code="$1" field="$2"
+    # field: 1=code, 2=name, 3=tier, 4=virt, 5=iface, 6=cloud_init, 7=kernel_mods, 8=notes, 9=url
+    grep "^$code[[:space:]]" "$PROV_FILE" | head -1 | awk -F'  +' -v f="$field" '{
+        split($0, a, "\t")
+        # Use tab as separator in actual file
+    }' 2>/dev/null || true
+    # Simpler approach
+    grep "^$code[[:space:]]" "$PROV_FILE" | head -1
+}
+
+# ── Generate cloud-init ──
+generate_cloud_init() {
+    local prov_code="$1" prov_name="$2" prov_iface="$3" prov_cinit="$4" prov_kmods="$5"
+    local ind_code="$6" ind_name="$7" ind_pkgs="$8" ind_services="$9" ind_notes="${10}"
+
+    local hostname="${prov_code:-acreetion}-server"
+    local ts=$(date +%Y%m%d-%H%M%S)
+
+    mkdir -p "$OUTPUT_DIR/${prov_code}-${ind_code}"
+
+    # Cloud-init user-data
+    cat > "$OUTPUT_DIR/${prov_code}-${ind_code}/cloud-init.yaml" << CLOUDEOF
+#cloud-config
+# AcreetionOS Server — ${prov_name} × ${ind_name}
+# Generated: $(date)
+
+hostname: ${hostname}
+fqdn: ${hostname}.local
+
+users:
+  - name: admin
+    groups: [wheel, docker, libvirt]
+    sudo: ALL=(ALL) ALL
+    ssh_authorized_keys: []
+  - name: ops
+    groups: [docker]
+    sudo: []
+  - name: dbadmin
+    groups: []
+    sudo: []
+
+ssh_pwauth: false
+disable_root: true
+
+package_update: true
+package_upgrade: true
+packages:
+  - acreetionos-release
+  - linux
+  - linux-firmware
+  - sudo
+  - openssh
+  - docker
+  - docker-compose
+  - ${ind_pkgs:-curl wget git}
+
+write_files:
+  - path: /etc/nftables/acreetionos-server.conf
+    content: |
+      table inet acreetionos {
+          chain input {
+              type filter hook input priority 0; policy drop;
+              ct state { established, related } accept
+              iif lo accept
+              icmp type { echo-request } accept
+              tcp dport 22 accept
+          }
+          chain forward { type filter hook forward priority 0; policy drop; }
+          chain output { type filter hook output priority 0; policy accept; }
+      }
+  - path: /etc/sysctl.d/99-acreetionos.conf
+    content: |
+      net.ipv4.tcp_fastopen = 3
+      net.ipv4.tcp_slow_start_after_idle = 0
+      net.core.rmem_max = 134217728
+      net.core.wmem_max = 134217728
+      vm.swappiness = 10
+      ${ind_code:+${ind_notes}}
+
+runcmd:
+  - |-
+    # Provider-specific kernel modules
+    for mod in ${prov_kmods//,/ }; do
+      modprobe $mod 2>/dev/null && echo "$mod" >> /etc/modules-load.d/acreetionos-provider.conf || true
+    done
+  - systemctl enable --now docker.service || true
+  - ${ind_services:+for svc in ${ind_services}; do systemctl enable --now \$svc 2>/dev/null || true; done}
+  - nft -f /etc/nftables/acreetionos-server.conf
+  - systemctl enable nftables.service || true
+  - echo "AcreetionOS Server deployed: ${prov_name} / ${ind_name}" > /etc/acreetionos-deployment
+CLOUDEOF
+
+    # Deployment info
+    cat > "$OUTPUT_DIR/${prov_code}-${ind_code}/README.txt" << READMEEOF
+╔══════════════════════════════════════════════════════════════╗
+║  AcreetionOS Server — Deployment Profile                    ║
+║  Provider: ${prov_name}
+║  Industry: ${ind_name}
+║  Generated: $(date)
+╚══════════════════════════════════════════════════════════════╝
+
+PROVIDER DETAILS
+  URL:        ${prov_url:-N/A}
+  Interface:  ${prov_iface}
+  Virtualization: ${prov_virt}
+  Cloud-init: ${prov_cinit}
+  Kernel mods: ${prov_kmods}
+
+INDUSTRY DETAILS
+  Packages:   ${ind_pkgs}
+  Services:   ${ind_services}
+  Notes:      ${ind_notes}
+
+DEPLOYMENT
+  1. Upload cloud-init.yaml to your provider
+  2. Deploy with the provider's CLI or web panel
+  3. SSH in and run:
+       sudo acreetionos-wizard       — full system setup
+       sudo acreetionos-maintain     — maintenance menu
+       sudo acreetionos-systemd      — service management
+       sudo acreetionos-toolbox      — browse all tools
+
+  #KeepLinuxFree #AcreetionOSWillAlwaysBeFree
+READMEEOF
+
+    echo -e "${GREEN}[✓]${NC} Profile generated: ${CYAN}${prov_code}-${ind_code}${NC}"
+    echo "    ${OUTPUT_DIR}/${prov_code}-${ind_code}/"
+    echo "    → cloud-init.yaml  (deploy to provider)"
+    echo "    → README.txt       (deployment instructions)"
+}
+
+# ── Main Menu ──
+while true; do
+    clear
+    echo -e "${CYAN}"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║   AcreetionOS Server — Deployment Profile Selector          ║"
+    echo "║   Choose provider + industry → get optimized cloud-init     ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+    echo "  ${BOLD}Select deployment region:${NC}"
+    echo "  1)  🏢  Hyperscalers (AWS, Azure, GCP, OCI)"
+    echo "  2)  🌍  Major Providers (DO, Vultr, Linode, Hetzner, OVH, etc.)"
+    echo "  3)  💰  Budget Providers (BuyVM, RamNode, Contabo, etc.)"
+    echo "  4)  🎯  Niche / Specialized"
+    echo "  5)  🌏  Asia-Pacific"
+    echo "  6)  🇪🇺  Europe"
+    echo "  7)  🌎  Americas"
+    echo "  8)  🌍  Africa / Middle East"
+    echo "  9)  🔍  Search all providers"
+    echo " 10)  📋  List all 100+ providers"
+    echo ""
+    echo "  q)  Quit"
+    echo ""
+    read -r -p "  Choice: " tier_choice
+
+    case "$tier_choice" in
+        1) providers=$(list_providers_by_tier "hyperscaler") ;;
+        2) providers=$(list_providers_by_tier "major") ;;
+        3) providers=$(list_providers_by_tier "budget") ;;
+        4) providers=$(list_providers_by_tier "niche") ;;
+        5) providers=$(list_providers_by_tier "apac") ;;
+        6) providers=$(list_providers_by_tier "europe") ;;
+        7) providers=$(list_providers_by_tier "americas") ;;
+        8) providers=$(list_providers_by_tier "africa\|middleeast") ;;
+        9)
+            read -r -p "  Search term: " query
+            providers=$(list_all_providers | grep -i "$query") ;;
+        10)
+            echo ""; list_all_providers | awk -F'\t' '{printf "  %-15s %-35s %s\n", $1, $2, $3}'
+            echo ""; read -r -p "Press Enter..."; continue ;;
+        q|Q) echo ""; log "Happy deploying!"; exit 0 ;;
+        *) continue ;;
+    esac
+
+    # Show providers in this tier
+    if [[ -z "$providers" ]]; then
+        echo "  No providers found."; sleep 1; continue
+    fi
+
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}Select Provider${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo "  $(echo "$providers" | wc -l) providers available"
+    echo ""
+
+    local i=0
+    declare -a PROV_CODES PROV_NAMES
+    while IFS= read -r line; do
+        i=$((i+1))
+        code=$(echo "$line" | awk '{print $1}')
+        name=$(echo "$line" | awk '{$1=""; print $0}' | sed 's/^ *//' | cut -d' ' -f1-4)
+        tier=$(echo "$line" | awk '{print $3}')
+        printf "  ${CYAN}%2d)${NC} %-20s %s\n" "$i" "$code" "$name"
+        PROV_CODES[$i]="$code"
+        PROV_NAMES[$i]="$name"
+    done < <(echo "$providers")
+    echo ""
+    echo "  b)  Back to regions"
+    echo ""
+    read -r -p "  Choice: " prov_choice
+
+    [[ "$prov_choice" == "b" || "$prov_choice" == "B" ]] && continue
+    [[ ! "$prov_choice" =~ ^[0-9]+$ ]] && continue
+    [[ "$prov_choice" -lt 1 || "$prov_choice" -gt "$i" ]] && continue
+
+    CURRENT_PROVIDER="${PROV_CODES[$prov_choice]}"
+    CURRENT_PROVIDER_NAME="${PROV_NAMES[$prov_choice]}"
+
+    # ── Show industry profiles ──
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}Select Industry Profile${NC} — ${CURRENT_PROVIDER_NAME}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    local j=0
+    declare -a IND_CODES IND_NAMES IND_DESCS
+    while IFS=$'\t' read -r code name desc pkgs svcs notes; do
+        j=$((j+1))
+        printf "  ${CYAN}%2d)${NC} %-20s %s\n" "$j" "$(echo "$name" | tr -d '"')" "$(echo "$desc" | tr -d '"')"
+        IND_CODES[$j]="$code"
+        IND_NAMES[$j]="$(echo "$name" | tr -d '"')"
+        IND_DESCS[$j]="$(echo "$desc" | tr -d '"')"
+        IND_PKGS[$j]="$(echo "$pkgs" | tr -d '"')"
+        IND_SVCS[$j]="$(echo "$svcs" | tr -d '"')"
+        IND_NOTES[$j]="$(echo "$notes" | tr -d '"')"
+    done < <(grep -v '^#' "$IND_FILE" | grep -v '^$')
+    echo ""
+    echo "  b)  Back to providers"
+    echo ""
+    read -r -p "  Choice: " ind_choice
+
+    [[ "$ind_choice" == "b" || "$ind_choice" == "B" ]] && continue
+    [[ ! "$ind_choice" =~ ^[0-9]+$ ]] && continue
+    [[ "$ind_choice" -lt 1 || "$ind_choice" -gt "$j" ]] && continue
+
+    CURRENT_INDUSTRY="${IND_CODES[$ind_choice]}"
+    CURRENT_INDUSTRY_NAME="${IND_NAMES[$ind_choice]}"
+
+    # ── Get provider details from file ──
+    prov_line=$(grep "^${CURRENT_PROVIDER}[[:space:]]" "$PROV_FILE" | head -1)
+    prov_name=$(echo "$prov_line" | awk '{$1=""; print $0}' | cut -d' ' -f1-4)
+    prov_tier=$(echo "$prov_line" | awk '{print $3}')
+    prov_virt=$(echo "$prov_line" | awk '{print $4}')
+    prov_iface=$(echo "$prov_line" | awk '{print $5}')
+    prov_cinit=$(echo "$prov_line" | awk '{print $6}')
+    prov_kmods=$(echo "$prov_line" | awk '{print $7}')
+    prov_notes=$(echo "$prov_line" | cut -d'#' -f2 | head -1)
+    prov_url=$(echo "$prov_line" | grep -oP 'https?://[^ ]+' || echo "")
+
+    # ── Generate the profile ──
+    generate_cloud_init \
+        "$CURRENT_PROVIDER" "$CURRENT_PROVIDER_NAME" \
+        "$prov_iface" "$prov_cinit" "$prov_kmods" \
+        "$CURRENT_INDUSTRY" "$CURRENT_INDUSTRY_NAME" \
+        "${IND_PKGS[$ind_choice]}" \
+        "${IND_SVCS[$ind_choice]}" \
+        "${IND_NOTES[$ind_choice]}"
+
+    echo ""
+    echo "  ${BOLD}Generated files:${NC}"
+    echo "  ${OUTPUT_DIR}/${CURRENT_PROVIDER}-${CURRENT_INDUSTRY}/"
+    ls -la "$OUTPUT_DIR/${CURRENT_PROVIDER}-${CURRENT_INDUSTRY}/" | grep -v total | sed 's/^/  /'
+    echo ""
+    read -r -p "  Press Enter to continue..."
+done

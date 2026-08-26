@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AcreetionOS Server — Reinstall GUI Script
+# Reverses acreetionos-strip-gui. Reinstalls the desktop environment.
+# ==============================================================================
+set -euo pipefail
+
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root (use sudo)."
+    exit 1
+fi
+
+echo ""
+echo "━━━ Reinstalling GUI on AcreetionOS Server ━━━"
+echo ""
+
+# Install desktop groups
+echo "[1/5] Installing display server..."
+pacman -S --noconfirm --needed \
+    xorg-server xorg-server-common xorg-xinit xorg-xrandr \
+    mesa mesa-utils \
+    xf86-input-libinput xf86-video-amdgpu xf86-video-intel xf86-video-nouveau \
+    >/dev/null 2>&1 || true
+
+echo "[2/5] Installing display manager..."
+pacman -S --noconfirm --needed \
+    lightdm lightdm-gtk-greeter accountsservice \
+    >/dev/null 2>&1 || true
+
+echo "[3/5] Installing Cinnamon desktop..."
+pacman -S --noconfirm --needed \
+    cinnamon cinnamon-control-center cinnamon-menus \
+    cinnamon-session cinnamon-settings-daemon \
+    cinnamon-translations cjs muffin nemo \
+    gnome-terminal gnome-keyring gnome-themes-extra \
+    xed gnome-system-monitor \
+    adwaita-icon-theme gnu-free-fonts \
+    >/dev/null 2>&1 || true
+
+echo "[4/5] Installing audio stack..."
+pacman -S --noconfirm --needed \
+    pipewire-pulse wireplumber pavucontrol \
+    >/dev/null 2>&1 || true
+
+echo "[5/5] Enabling display manager..."
+systemctl enable lightdm.service 2>/dev/null || true
+systemctl set-default graphical.target 2>/dev/null || true
+
+# Clean up first-boot marker so the popup will show again
+rm -f /etc/acreetionos-firstboot-done
+
+echo ""
+echo "✅ GUI reinstalled successfully!"
+echo "   Reboot to start the desktop: sudo reboot"
+echo ""
+echo "   On next boot, you'\''ll be asked if you want to keep the GUI."
+echo "   Run 'acreetionos-strip-gui' anytime to remove it again."

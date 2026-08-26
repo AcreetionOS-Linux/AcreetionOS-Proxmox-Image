@@ -1,14 +1,15 @@
-*.tar
-*.tar.*
-*.jar
-*.exe
-*.msi
-*.deb
-*.zip
-*.tgz
-*.log
-*.log.*
-*.sig
+# Build directories
+work/
+out/
+../ISO/*.iso
 
-pkg/
-src/
+# Compiled binaries
+mkarchiso_wrapper
+*.o
+
+# Backup files
+*.bak
+*.save
+
+# Pacman cache
+/var/cache/pacman/pkg/*

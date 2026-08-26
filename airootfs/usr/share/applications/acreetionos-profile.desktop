@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Deployment Profiles
+Comment=Select VPS provider + industry → get optimized cloud-init config
+Exec=pkexec acreetionos-profile
+Icon=network-server
+Terminal=true
+Categories=System;Administration;Settings;
+StartupNotify=false

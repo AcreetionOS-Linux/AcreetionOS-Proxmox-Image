@@ -1,0 +1,124 @@
+# ==============================================================================
+# AcreetionOS Server — Quarterly ISO Build Pipeline
+# Builds ISO automatically on the 1st of January, April, July, and October.
+# Also supports manual trigger for urgent releases.
+#
+# #KeepLinuxFree #AcreetionOSWillAlwaysBeFree
+# ==============================================================================
+
+name: Build AcreetionOS Proxmox ISO
+
+on:
+  schedule:
+    # Quarterly: 1st of Jan, Apr, Jul, Oct at 06:00 UTC
+    - cron: "0 6 1 1,4,7,10 *"
+  workflow_dispatch:
+    inputs:
+      version_suffix:
+        description: "Optional version suffix (e.g., rc1, hotfix)"
+        required: false
+        type: string
+
+env:
+  ISO_NAME: "acreetionos-proxmox"
+  BUILD_DIR: "/tmp/archiso-build"
+
+jobs:
+  build:
+    name: Build ISO
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: acreetionos-proxmox
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm \
+            archiso \
+            git \
+            sudo \
+            make \
+            base-devel \
+            squashfs-tools \
+            grub \
+            syslinux \
+            dosfstools \
+            libisoburn \
+            mtools
+        shell: bash
+
+      - name: Configure build
+        run: |
+          cd acreetionos-proxmox
+          # Apply version suffix if provided
+          if [[ -n "${{ inputs.version_suffix }}" ]]; then
+            sed -i "s/iso_version=\"1.0\"/iso_version=\"1.0-${{ inputs.version_suffix }}\"/" profiledef.sh
+          fi
+          # Generate build info
+          echo "BUILD_ID=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+          echo "ISO_VERSION=$(grep ^iso_version profiledef.sh | cut -d'"' -f2)" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build ISO
+        run: |
+          cd acreetionos-proxmox
+          mkdir -p /tmp/iso-output
+          ./build.sh
+          # Find and copy the ISO
+          ISO_FILE=$(find ../ISO -name "*.iso" -type f | head -1)
+          if [[ -z "${ISO_FILE}" ]]; then
+            echo "No ISO found in ../ISO/"
+            exit 1
+          fi
+          cp "${ISO_FILE}" /tmp/iso-output/
+          echo "ISO_FILE=$(basename ${ISO_FILE})" >> $GITHUB_ENV
+        shell: bash
+        timeout-minutes: 120
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ISO_NAME }}-${{ env.ISO_VERSION }}-${{ env.BUILD_ID }}
+          path: /tmp/iso-output/*.iso
+          retention-days: 90
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'schedule'
+        with:
+          tag_name: v${{ env.ISO_VERSION }}-q${{ github.run_number }}
+          name: "AcreetionOS Proxmox v${{ env.ISO_VERSION }} — Quarterly Release"
+          body: |
+            ## AcreetionOS Server — Quarterly ISO Build
+            
+            This is an automated quarterly release of AcreetionOS Server.
+            
+            **Version**: ${{ env.ISO_VERSION }}
+            **Build**: ${{ env.BUILD_ID }}
+            **Date**: ${{ github.event.schedule || github.run_started_at }}
+            
+            ### What is this?
+            AcreetionOS Server is an auto-installing Arch Linux-based server ISO
+            with a full Cinnamon desktop experience. Boot it, wait 10 minutes,
+            and you have a fully configured server.
+            
+            ### Changes this quarter
+            See the [commit log](https://github.com/AcreetionOS-Code/AcreetionOS-Proxmox-Image/commits/main)
+            for detailed changes since the last release.
+            
+            ### Verify
+            ```bash
+            sha256sum *.iso
+            ```
+            
+            #KeepLinuxFree #AcreetionOSWillAlwaysBeFree
+          files: /tmp/iso-output/*.iso
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

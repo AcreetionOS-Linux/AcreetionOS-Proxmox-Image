@@ -1,0 +1,17 @@
+[Unit]
+Description=AcreetionOS Server Auto-Installer
+Documentation=https://github.com/AcreetionOS-Code/acreetionos-server
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/etc/acreetionos-server-installed
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/acreetionos-server-installer
+ExecStartPost=/usr/bin/systemctl disable acreetionos-server-installer.service
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=multi-user.target

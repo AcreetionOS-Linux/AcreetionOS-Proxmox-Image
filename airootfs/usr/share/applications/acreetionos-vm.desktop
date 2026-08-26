@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Virtual Machine
+Comment=Create and manage VMs with libvirt
+Exec=pkexec acreetionos-wizard-vm
+Icon=computer
+Terminal=true
+Categories=System;Virtualization;Settings;
+StartupNotify=false

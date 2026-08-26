@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# AcreetionOS Server — Backup Setup Wizard
+# Configure and schedule backups with restic, borg, or timeshift.
+set -euo pipefail
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
+[[ $EUID -ne 0 ]] && exec sudo "$0" "$@"
+
+# Run backup if called with --run (from timer)
+if [[ "${1:-}" == "--run" ]]; then
+    if [[ -f /etc/acreetionos-backup.conf ]]; then
+        source /etc/acreetionos-backup.conf
+        echo "[$(date)] Running scheduled backup..."
+        case "${BACKUP_TOOL:-}" in
+            restic)  restic --repo "$BACKUP_DEST" backup ${BACKUP_PATHS:-/home /etc /var/lib} ;;
+            borg)    borg create "$BACKUP_DEST::$(date +%Y%m%d-%H%M%S)" ${BACKUP_PATHS:-/home /etc /var/lib} ;;
+            timeshift) timeshift --create --comments "automated" ;;
+            *) echo "  No backup tool configured. Run acreetionos-wizard-backup to set up." ;;
+        esac
+    else
+        echo "  No backup configuration found."
+    fi
+    exit 0
+fi
+
+while true; do
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}           ${BOLD}Backup Configuration${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    TIMER_ACTIVE=$(systemctl is-active acreetionos-daily-backup.timer 2>/dev/null || echo "inactive")
+    echo "  ${BOLD}Daily backup timer:${NC} $TIMER_ACTIVE"
+    echo ""
+    echo "  1)  Configure restic backup"
+    echo "  2)  Configure borg backup"
+    echo "  3)  Configure timeshift (system snapshots)"
+    echo "  4)  Enable daily backup timer"
+    echo "  5)  Disable daily backup timer"
+    echo "  6)  Run backup now"
+    echo "  7)  View backup status / list snapshots"
+    echo "  8)  Restore from backup"
+    echo ""
+    echo "  b)  Back"
+    echo ""
+    read -r -p "  Choice: " bc
+    case "$bc" in
+        1)
+            echo ""; read -r -p "  Restic repository path (e.g., /mnt/backup or s3:https://...): " rrepo
+            read -r -p "  Restic password: " rpass
+            read -r -p "  Directories to backup [/home /etc /var/lib]: " rpaths
+            rpaths="${rpaths:-/home /etc /var/lib}"
+            [[ -z "$rrepo" ]] && continue
+            restic -r "$rrepo" init 2>/dev/null || true
+            echo "BACKUP_TOOL=restic" > /etc/acreetionos-backup.conf
+            echo "BACKUP_DEST=$rrepo" >> /etc/acreetionos-backup.conf
+            echo "BACKUP_PATHS=$rpaths" >> /etc/acreetionos-backup.conf
+            echo "RESTIC_PASSWORD=$rpass" >> /etc/acreetionos-backup.conf
+            chmod 600 /etc/acreetionos-backup.conf
+            echo -e "${GREEN}[✓]${NC} restic configured for $rrepo" ;;
+        2)
+            echo ""; read -r -p "  Borg repository path (e.g., /mnt/backup or user@host:path): " brepo
+            read -r -p "  Directories to backup [/home /etc /var/lib]: " bpaths
+            bpaths="${bpaths:-/home /etc /var/lib}"
+            [[ -z "$brepo" ]] && continue
+            borg init --encryption=repokey "$brepo" 2>/dev/null || true
+            echo "BACKUP_TOOL=borg" > /etc/acreetionos-backup.conf
+            echo "BACKUP_DEST=$brepo" >> /etc/acreetionos-backup.conf
+            echo "BACKUP_PATHS=$bpaths" >> /etc/acreetionos-backup.conf
+            chmod 600 /etc/acreetionos-backup.conf
+            echo -e "${GREEN}[✓]${NC} borg configured for $brepo" ;;
+        3)
+            if command -v timeshift &>/dev/null; then
+                echo "BACKUP_TOOL=timeshift" > /etc/acreetionos-backup.conf
+                timeshift --create --comments "initial" 2>/dev/null || true
+                echo -e "${GREEN}[✓]${NC} timeshift configured. First snapshot created."
+            else
+                echo "  timeshift not installed." ;;
+            fi ;;
+        4)
+            systemctl enable --now acreetionos-daily-backup.timer 2>/dev/null || true
+            echo -e "${GREEN}[✓]${NC} Daily backup timer enabled (runs at midnight, randomized delay)" ;;
+        5)
+            systemctl disable --now acreetionos-daily-backup.timer 2>/dev/null || true
+            echo -e "${YELLOW}[!]${NC} Daily backup timer disabled" ;;
+        6)
+            if [[ -f /etc/acreetionos-backup.conf ]]; then
+                source /etc/acreetionos-backup.conf
+                case "$BACKUP_TOOL" in
+                    restic)
+                        restic -r "$BACKUP_DEST" backup $BACKUP_PATHS --password-fallback="$RESTIC_PASSWORD" 2>/dev/null || \
+                        RESTIC_PASSWORD="$RESTIC_PASSWORD" restic -r "$BACKUP_DEST" backup $BACKUP_PATHS 2>/dev/null || true ;;
+                    borg) borg create "$BACKUP_DEST::$(date +%Y%m%d-%H%M%S)" $BACKUP_PATHS 2>/dev/null || true ;;
+                    timeshift) timeshift --create --comments "manual" 2>/dev/null || true ;;
+                esac
+                echo -e "${GREEN}[✓]${NC} Backup completed."
+            else
+                echo "  No backup configured. Set one up first."
+            fi ;;
+        7)
+            if [[ -f /etc/acreetionos-backup.conf ]]; then
+                source /etc/acreetionos-backup.conf
+                case "$BACKUP_TOOL" in
+                    restic)  restic -r "$BACKUP_DEST" snapshots 2>/dev/null || true ;;
+                    borg)    borg list "$BACKUP_DEST" 2>/dev/null || true ;;
+                    timeshift) timeshift --list 2>/dev/null || true ;;
+                esac
+            else
+                echo "  No backup configured."
+            fi ;;
+        8)
+            echo "  Restore from which tool?"
+            echo "  1) restic"
+            echo "  2) borg"
+            echo "  3) timeshift"
+            read -r -p "  Choice: " rt
+            case "$rt" in
+                1)
+                    [[ -f /etc/acreetionos-backup.conf ]] && source /etc/acreetionos-backup.conf || true
+                    if [[ -n "${BACKUP_DEST:-}" ]]; then
+                        restic -r "$BACKUP_DEST" snapshots 2>/dev/null | head -10
+                        read -r -p "  Snapshot ID to restore: " rsid
+                        read -r -p "  Target directory [/]: " rtdir
+                        rtdir="${rtdir:-/}"
+                        restic -r "$BACKUP_DEST" restore "$rsid" --target "$rtdir" 2>/dev/null || true
+                        echo -e "${GREEN}[✓]${NC} Restored snapshot $rsid to $rtdir"
+                    fi ;;
+                2)
+                    [[ -f /etc/acreetionos-backup.conf ]] && source /etc/acreetionos-backup.conf || true
+                    if [[ -n "${BACKUP_DEST:-}" ]]; then
+                        borg list "$BACKUP_DEST" 2>/dev/null | head -10
+                        read -r -p "  Archive name to extract: " baname
+                        read -r -p "  Target directory [/]: " btdir
+                        btdir="${btdir:-/}"
+                        borg extract "$BACKUP_DEST::$baname" 2>/dev/null || true
+                        echo -e "${GREEN}[✓]${NC} Extracted $baname"
+                    fi ;;
+                3)
+                    timeshift --list 2>/dev/null | head -10
+                    read -r -p "  Snapshot tag to restore: " tstag
+                    timeshift --restore --snapshot-device "$tstag" 2>/dev/null || true ;;
+            esac ;;
+        b|B) return ;;
+    esac
+    echo ""; read -r -p "Press Enter..."
+done

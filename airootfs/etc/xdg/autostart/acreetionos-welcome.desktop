@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Server — Welcome
+Comment=Welcome message with mission, tools, and getting started info
+Exec=gnome-terminal --title="Welcome to AcreetionOS Server" -- /usr/local/bin/acreetionos-welcome
+Icon=computer
+Terminal=false
+Categories=System;
+X-GNOME-Autostart-Phase=Applications
+X-KDE-autostart-after=panel
+OnlyShowIn=GNOME;X-Cinnamon;MATE;

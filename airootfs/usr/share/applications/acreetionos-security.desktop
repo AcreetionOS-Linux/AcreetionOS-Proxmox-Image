@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Security
+Comment=SSH keys, fail2ban, audit, rootkit scanning, antivirus
+Exec=pkexec acreetionos-wizard-security
+Icon=security-high
+Terminal=true
+Categories=System;Security;Settings;
+StartupNotify=false

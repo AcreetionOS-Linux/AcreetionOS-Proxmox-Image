@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# AcreetionOS Server — Strip GUI Script
+# Removes desktop environment, display manager, Xorg, audio stack.
+# Drops to multi-user.target (TTY-only). Reversible via acreetionos-install-gui.
+# ==============================================================================
+set -euo pipefail
+
+# Only run as root
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root (use pkexec or sudo)."
+    exit 1
+fi
+
+DIALOG="${1:-gui}"  # "gui" or "tty"
+
+confirm() {
+    if [[ "${DIALOG}" == "gui" && -n "$(command -v zenity)" ]]; then
+        zenity --question --title="Strip GUI?" \
+            --text="Remove the desktop environment and switch to TTY-only mode?\n\nThis will uninstall Cinnamon, Xorg, LightDM, and audio packages.\nYour server tools and data will NOT be affected.\n\nYou can reinstall the GUI later with: acreetionos-install-gui" \
+            --width=500 --ok-label="Strip GUI" --cancel-label="Keep Desktop"
+    else
+        echo ""
+        echo "⚠ Remove the desktop environment and switch to TTY-only mode?"
+        echo "   This will uninstall Cinnamon, Xorg, LightDM, and audio."
+        echo "   Your server tools and data will NOT be affected."
+        echo "   You can reinstall the GUI later with: acreetionos-install-gui"
+        echo ""
+        read -r -p "Type 'YES' to confirm: " reply
+        [[ "${reply}" == "YES" ]]
+    fi
+}
+
+if ! confirm; then
+    echo "Keeping desktop GUI. No changes made."
+    exit 0
+fi
+
+echo ""
+echo "━━━ Stripping GUI from AcreetionOS Server ━━━"
+echo ""
+
+# 1. Disable display manager and graphical target
+echo "[1/5] Switching to multi-user.target..."
+systemctl disable lightdm.service 2>/dev/null || true
+systemctl set-default multi-user.target 2>/dev/null || true
+
+# 2. Remove desktop packages
+echo "[2/5] Removing desktop environment packages..."
+PACMAN_OPTS="--noconfirm --nosave --cachedir=/dev/null"
+
+# Remove cinnamon and friends
+pacman -Rdd ${PACMAN_OPTS} 2>/dev/null \
+    cinnamon cinnamon-control-center cinnamon-desktop cinnamon-menus \
+    cinnamon-session cinnamon-settings-daemon cinnamon-screensaver \
+    cinnamon-translations cjs muffin nemo \
+    gnome-terminal gnome-keyring gnome-themes-extra \
+    xed gnome-system-monitor webapp-manager \
+    xdg-desktop-portal-xapp \
+    mate-icon-theme-faenza adwaita-icon-theme \
+    gnu-free-fonts \
+    || true
+
+# Remove display server
+echo "[3/5] Removing display server..."
+pacman -Rdd ${PACMAN_OPTS} 2>/dev/null \
+    xorg-server xorg-server-common xorg-xinit xorg-xrandr xorg-xrdb \
+    mesa mesa-utils glu \
+    xf86-input-libinput xf86-video-amdgpu xf86-video-intel xf86-video-nouveau \
+    lightdm lightdm-gtk-greeter accountsservice \
+    || true
+
+# Remove audio
+echo "[4/5] Removing audio stack..."
+pacman -Rdd ${PACMAN_OPTS} 2>/dev/null \
+    pipewire-pulse wireplumber pavucontrol alsa-utils sof-firmware \
+    || true
+
+# Remove plymouth
+pacman -Rdd ${PACMAN_OPTS} 2>/dev/null plymouth || true
+
+# 3. Clean up orphaned dependencies
+echo "[5/5] Cleaning up orphaned packages..."
+pacman -Qdtq 2>/dev/null | pacman -Rns ${PACMAN_OPTS} - 2>/dev/null || true
+
+# 4. Remove first-boot marker so the script can re-run if needed
+rm -f /etc/acreetionos-firstboot-done
+
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║      ✅ GUI stripped successfully!                          ║"
+echo "║                                                              ║"
+echo "║  The desktop environment has been removed:                   ║"
+echo "║    • Cinnamon, Xorg, LightDM, PipeWire — all gone            ║"
+echo "║    • ~500MB disk space recovered                             ║"
+echo "║    • System will now boot to TTY (multi-user.target)         ║"
+echo "║                                                              ║"
+echo "║  ⚠  THE SYSTEM IS GOING TO REBOOT.                          ║"
+echo "║     Save any work before the countdown reaches zero.         ║"
+echo "║                                                              ║"
+echo "║  After reboot, log in at the terminal with your credentials. ║"
+echo "║                                                              ║"
+echo "║  To reinstall the GUI later:                                 ║"
+echo "║    sudo acreetionos-install-gui                              ║"
+echo "║                                                              ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+
+# 5. Reboot with clear warning
+if [[ "${DIALOG}" == "gui" ]]; then
+    zenity --warning --title="⚠ SYSTEM WILL REBOOT" \
+        --text="<b>The desktop has been stripped.</b>\n\nThe system will reboot to TTY mode in 10 seconds.\n\nSave any work now." \
+        --width=450 2>/dev/null || true
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ⚠  REBOOTING IN 10 SECONDS — SAVE ANY WORK NOW"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+for i in 10 9 8 7 6 5 4 3 2 1; do
+    echo -ne "  Rebooting in ${i} seconds...\r"
+    sleep 1
+done
+echo ""
+echo "  Rebooting now."
+reboot

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AcreetionOS Systemd Admin
+Comment=Manage services, timers, journals, boot, targets, and more
+Exec=pkexec acreetionos-systemd
+Icon=utilities-terminal
+Terminal=true
+Categories=System;Administration;
+StartupNotify=false
