@@ -102,6 +102,15 @@ pacman -Sy archmox-proxmox-ve
 - [PBS Port Guide](docs/porting-guides/pbs-port.md)
 - [PMG Port Guide](docs/porting-guides/pmg-port.md)
 
+## Trademarks
+
+Archmox is an **independent, community-run project and is not affiliated with,
+endorsed by, or sponsored by Proxmox Server Solutions GmbH**. "Proxmox",
+"Proxmox VE", "Proxmox Backup Server", "Proxmox Mail Gateway" and the Proxmox
+logo are trademarks of Proxmox Server Solutions GmbH, used here only
+descriptively. We do not ship Proxmox brand assets or present them as our own.
+See [TRADEMARKS.md](TRADEMARKS.md) for the full branding policy.
+
 ## License
 
 AGPL-3.0 — see [LICENSE](LICENSE). Upstream components retain their original

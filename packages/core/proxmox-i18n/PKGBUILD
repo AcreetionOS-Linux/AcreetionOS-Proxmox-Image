@@ -8,7 +8,7 @@ arch=('x86_64')
 url="https://archmox.acreetionos.org"
 license=('AGPL3')
 depends=('glibc')
-makedepends=('gettext' 'make')
+makedepends=('gettext' 'make' 'perl-json' 'perl-locale-po')
 source=("git+https://git.proxmox.com/git/proxmox-i18n.git")
 # Rolling port: track upstream master until pinned refs are validated.
 sha256sums=('SKIP')
