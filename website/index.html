@@ -15,97 +15,147 @@
   <meta name="twitter:description" content="Enterprise-grade virtualization on Arch Linux.">
   <title>Archmox — Open Source Virtualization Stack for Arch Linux</title>
   <style>
-    :root {
-      --am-teal: #2a9d8f;
-      --am-orange: #f4a261;
-      --am-red: #e76f51;
-      --am-bg: #0f0f0f;
-      --am-panel: #1a1a1a;
-      --am-box: #222;
-      --am-border: #333;
-      --am-text: #e0e0e0;
-      --am-dim: #9a9a9a;
-      --am-green: #2ecc71;
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-mono: "Fira Code", "Cascadia Code", monospace;
+    :root{
+      --am-teal:#2a9d8f;
+      --am-teal-bright:#3fc7b4;
+      --am-orange:#f4a261;
+      --am-red:#e76f51;
+      --am-bg:#0b1112;
+      --am-bg-alt:#0e1517;
+      --am-panel:#141d1f;
+      --am-box:#1a2426;
+      --am-border:#273436;
+      --am-text:#e6edee;
+      --am-dim:#9babae;
+      --am-green:#2ecc71;
+      --am-radius:14px;
+      --am-shadow:0 18px 40px -22px rgba(0,0,0,.85);
+      --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --font-mono:"Fira Code","Cascadia Code","JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{scroll-behavior:smooth}
-    body{font-family:var(--font-sans);background:var(--am-bg);color:var(--am-text);line-height:1.6}
-    a{color:var(--am-teal);text-decoration:none}
+    body{font-family:var(--font-sans);background:var(--am-bg);color:var(--am-text);line-height:1.65;-webkit-font-smoothing:antialiased;
+      background-image:radial-gradient(820px 460px at 12% -8%,rgba(42,157,143,.14),transparent 60%),radial-gradient(680px 380px at 100% 0,rgba(244,162,97,.09),transparent 55%);
+      background-repeat:no-repeat;background-attachment:fixed}
+    a{color:var(--am-teal-bright);text-decoration:none}
     a:hover{text-decoration:underline}
+    code{font-family:var(--font-mono);background:rgba(42,157,143,.12);color:#bfeee6;padding:.15rem .42rem;border-radius:5px;font-size:.88em}
+    :focus-visible{outline:2px solid var(--am-teal-bright);outline-offset:2px}
 
-    .page-header{background:rgba(15,15,15,0.9);backdrop-filter:blur(12px);border-bottom:2px solid var(--am-teal);position:sticky;top:0;z-index:100}
-    .header-content{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0.75rem 1.5rem}
-    .logo{display:flex;align-items:center;gap:0.6rem;text-decoration:none}
-    .logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem;color:#000}
-    .logo-text{font-size:1.3rem;font-weight:700;color:var(--am-text)}
-    .logo-text span{color:var(--am-teal)}
-    .main-nav{display:flex;gap:0.25rem;flex-wrap:wrap}
-    .main-nav a{padding:0.5rem 1rem;border-radius:8px;font-size:0.9rem;color:var(--am-dim);transition:all 0.2s}
-    .main-nav a:hover{background:rgba(42,157,143,0.1);color:var(--am-teal);text-decoration:none}
-    .main-nav a.active{background:var(--am-teal);color:#000;font-weight:600}
+    /* Header */
+    .page-header{position:sticky;top:0;z-index:100;background:rgba(11,17,18,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--am-border)}
+    .header-content{display:flex;align-items:center;justify-content:space-between;gap:1rem;max-width:1200px;margin:0 auto;padding:.7rem 1.5rem}
+    .logo{display:flex;align-items:center;gap:.65rem;text-decoration:none;flex:0 0 auto}
+    .logo:hover{text-decoration:none}
+    .logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.15rem;color:#04110f;letter-spacing:-.02em}
+    .logo-text{font-size:1.3rem;font-weight:800;color:var(--am-text);letter-spacing:-.02em}
+    .logo-text span{color:var(--am-teal-bright)}
+    .main-nav{display:flex;align-items:center;gap:.15rem;flex-wrap:wrap;justify-content:flex-end}
+    .main-nav a{padding:.48rem .78rem;border-radius:9px;font-size:.88rem;font-weight:500;color:var(--am-dim);transition:background .18s,color .18s}
+    .main-nav a:hover{background:rgba(42,157,143,.12);color:var(--am-teal-bright);text-decoration:none}
+    .main-nav a.active{background:var(--am-teal);color:#04110f;font-weight:700}
 
-    .hero{text-align:center;padding:5rem 1.5rem 4rem;max-width:900px;margin:0 auto}
-    .hero h1{font-size:3rem;font-weight:800;margin-bottom:1rem;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .hero p{font-size:1.2rem;color:var(--am-dim);max-width:700px;margin:0 auto 2rem}
-    .hero-badge{display:inline-block;background:rgba(42,157,143,0.15);border:1px solid var(--am-teal);padding:0.4rem 1.2rem;border-radius:20px;font-size:0.85rem;color:var(--am-teal);margin-bottom:1.5rem}
+    /* Hero */
+    .hero{position:relative;text-align:center;padding:5.2rem 1.5rem 4.2rem;max-width:960px;margin:0 auto}
+    .hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(42,157,143,.12);border:1px solid rgba(42,157,143,.4);padding:.42rem 1.1rem;border-radius:999px;font-size:.85rem;font-weight:600;color:var(--am-teal-bright);margin-bottom:1.6rem}
+    .hero h1{font-size:clamp(2.2rem,5vw,3.5rem);line-height:1.08;font-weight:850;letter-spacing:-.03em;margin-bottom:1.1rem;background:linear-gradient(120deg,var(--am-teal-bright) 0%,var(--am-teal) 38%,var(--am-orange) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+    .hero p{font-size:clamp(1.05rem,2vw,1.22rem);color:var(--am-dim);max-width:730px;margin:0 auto 2.1rem}
     .hero-cta{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
-    .btn{padding:0.8rem 2rem;border-radius:10px;font-weight:700;font-size:1rem;transition:transform 0.15s,box-shadow 0.15s;display:inline-block}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.9rem;border-radius:11px;font-weight:700;font-size:1rem;border:2px solid transparent;transition:transform .15s,box-shadow .15s,background .18s,border-color .18s}
     .btn:hover{text-decoration:none;transform:translateY(-2px)}
-    .btn-primary{background:var(--am-teal);color:#000;box-shadow:0 4px 14px rgba(42,157,143,0.3)}
-    .btn-secondary{background:transparent;color:var(--am-teal);border:2px solid var(--am-teal)}
+    .btn-primary{background:linear-gradient(135deg,var(--am-teal),#23867a);color:#04110f;box-shadow:0 12px 26px -12px rgba(42,157,143,.9)}
+    .btn-secondary{background:transparent;color:var(--am-teal-bright);border-color:var(--am-teal)}
+    .btn-secondary:hover{background:rgba(42,157,143,.1)}
+    .btn-ghost{background:rgba(255,255,255,.03);border-color:var(--am-border);color:var(--am-text)}
+    .btn-ghost:hover{border-color:var(--am-teal)}
 
+    .trust-bar{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin-top:2.4rem}
+    .trust-bar span{font-size:.82rem;color:var(--am-dim);background:rgba(255,255,255,.03);border:1px solid var(--am-border);border-radius:999px;padding:.35rem .9rem}
+
+    /* Layout */
     .page-wrapper{max-width:1200px;margin:0 auto;padding:0 1.5rem 4rem}
-    .content-box{background:var(--am-panel);border:1px solid var(--am-border);border-radius:16px;padding:2rem;margin-bottom:2rem}
-    .content-box h2{font-size:1.8rem;margin-bottom:1rem;color:var(--am-teal)}
-    .content-box h3{font-size:1.3rem;margin:1.5rem 0 0.5rem;color:var(--am-orange)}
-    .content-box p{margin-bottom:1rem;color:var(--am-dim)}
-    .content-box ul{margin-bottom:1rem}
-    .content-box li{margin-bottom:0.5rem;color:var(--am-dim)}
-    code{font-family:var(--font-mono);background:rgba(42,157,143,0.1);padding:0.15rem 0.4rem;border-radius:4px;font-size:0.9em}
+    .content-box{background:var(--am-panel);border:1px solid var(--am-border);border-radius:var(--am-radius);padding:2.2rem;margin-bottom:1.6rem;box-shadow:var(--am-shadow)}
+    .kicker{display:inline-block;font-size:.76rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--am-orange);margin-bottom:.55rem}
+    .content-box h2{font-size:clamp(1.5rem,3vw,1.95rem);letter-spacing:-.02em;margin-bottom:.9rem;color:var(--am-text)}
+    .content-box h3{font-size:1.2rem;margin:1.6rem 0 .55rem;color:var(--am-text)}
+    .content-box>p{margin-bottom:1rem;color:var(--am-dim)}
+    .content-box ul{margin:0 0 1rem;padding-left:1.2rem}
+    .content-box li{margin-bottom:.45rem;color:var(--am-dim)}
 
-    .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin:1.5rem 0}
-    .feature-card{background:var(--am-box);border:1px solid var(--am-border);border-radius:12px;padding:1.5rem;transition:transform 0.2s,border-color 0.2s}
-    .feature-card:hover{transform:translateY(-3px);border-color:var(--am-teal)}
-    .feature-card .icon{font-size:2rem;margin-bottom:0.8rem}
-    .feature-card h4{font-size:1.1rem;color:var(--am-text);margin-bottom:0.5rem}
-    .feature-card p{font-size:0.9rem;color:var(--am-dim);margin:0}
-    .feature-card code{font-size:0.8rem}
+    /* Feature grid */
+    .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:1.3rem;margin:1.6rem 0 .4rem}
+    .feature-card{position:relative;background:linear-gradient(180deg,var(--am-box),var(--am-panel));border:1px solid var(--am-border);border-radius:var(--am-radius);padding:1.6rem;transition:transform .2s,border-color .2s,box-shadow .2s;overflow:hidden}
+    .feature-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--am-teal),var(--am-orange));opacity:0;transition:opacity .2s}
+    .feature-card:hover{transform:translateY(-4px);border-color:rgba(42,157,143,.5);box-shadow:var(--am-shadow)}
+    .feature-card:hover::before{opacity:1}
+    .feature-card .icon{font-size:1.6rem;width:50px;height:50px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(42,157,143,.12);border:1px solid rgba(42,157,143,.25);margin-bottom:1rem}
+    .feature-card h3{font-size:1.1rem;margin:0 0 .5rem;color:var(--am-text)}
+    .feature-card p{font-size:.9rem;color:var(--am-dim);margin:0}
+    .feature-card .pkg{display:inline-block;margin-top:.9rem;font-family:var(--font-mono);font-size:.76rem;color:var(--am-teal-bright);background:rgba(42,157,143,.1);border:1px solid rgba(42,157,143,.25);border-radius:6px;padding:.12rem .5rem}
 
-    .domain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.8rem;margin:1rem 0}
-    .domain-item{background:var(--am-box);border:1px solid var(--am-border);border-radius:8px;padding:0.8rem 1rem;text-align:center}
-    .domain-item a{font-family:var(--font-mono);font-size:0.9rem}
-    .domain-item small{display:block;color:var(--am-dim);font-size:0.75rem;margin-top:0.25rem}
+    /* Install */
+    .install-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:2rem;align-items:start;margin-top:1.5rem}
+    .install-step{display:flex;gap:.9rem;margin-bottom:1.5rem}
+    .step-num{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:rgba(42,157,143,.14);border:1px solid rgba(42,157,143,.3);color:var(--am-teal-bright);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95rem}
+    .install-step h3{font-size:1.02rem;margin:.2rem 0 .3rem}
+    .install-step p{font-size:.9rem;color:var(--am-dim);margin:0}
+    .code-block{background:#07100f;border:1px solid var(--am-border);border-radius:var(--am-radius);padding:1.15rem 1.25rem;overflow-x:auto;font-family:var(--font-mono);font-size:.85rem;line-height:1.8;color:var(--am-text);-webkit-overflow-scrolling:touch}
+    .code-block code{background:none;padding:0;color:inherit;font-size:inherit}
+    .c-comment{color:#54706e}
+    .c-key{color:var(--am-orange);font-weight:700}
+    .c-cmd{color:var(--am-teal-bright);font-weight:600}
+    .c-str{color:#e9c46a}
 
-    .page-footer{border-top:1px solid var(--am-border);padding:2rem 1.5rem;text-align:center;color:var(--am-dim);font-size:0.85rem}
-    .page-footer a{color:var(--am-teal)}
-    .acreetionos-badge{display:inline-flex;align-items:center;gap:0.5rem;background:rgba(46,204,113,0.1);border:1px solid var(--am-green);border-radius:20px;padding:0.3rem 1rem;font-size:0.8rem;color:var(--am-green);margin-top:0.5rem}
+    /* Domains */
+    .domain-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:.9rem;margin:1.3rem 0 0}
+    .domain-item{background:var(--am-box);border:1px solid var(--am-border);border-radius:12px;padding:.95rem 1.1rem;transition:border-color .2s,transform .2s}
+    .domain-item:hover{border-color:rgba(42,157,143,.5);transform:translateY(-2px)}
+    .domain-item a{font-family:var(--font-mono);font-size:.84rem;font-weight:600}
+    .domain-item:hover a{text-decoration:none}
+    .domain-item small{display:block;color:var(--am-dim);font-size:.74rem;margin-top:.28rem}
 
-    @media(max-width:768px){
-      .hero h1{font-size:2.2rem}
-      .header-content{flex-direction:column;gap:0.5rem}
+    .badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(46,204,113,.1);border:1px solid var(--am-green);border-radius:999px;padding:.32rem 1rem;font-size:.8rem;color:var(--am-green);margin-top:.6rem}
+
+    /* Footer */
+    .page-footer{border-top:1px solid var(--am-border);background:var(--am-bg-alt);padding:2.6rem 1.5rem;color:var(--am-dim);font-size:.85rem}
+    .footer-inner{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.5rem;justify-content:space-between;align-items:flex-start}
+    .footer-brand{max-width:340px}
+    .footer-brand p{margin-top:.7rem;color:var(--am-dim)}
+    .footer-nav{display:flex;flex-wrap:wrap;gap:.4rem 1.3rem}
+    .footer-nav a{color:var(--am-dim)}
+    .footer-nav a:hover{color:var(--am-teal-bright)}
+    .footer-legal{max-width:1200px;margin:1.8rem auto 0;padding-top:1.3rem;border-top:1px solid var(--am-border)}
+    .footer-trademark{max-width:1200px;margin:.8rem auto 0;font-size:.76rem;color:#7c8b8d;line-height:1.65}
+
+    @media(max-width:860px){
+      .install-grid{grid-template-columns:1fr}
+      .header-content{flex-direction:column;gap:.5rem;padding:.7rem 1rem}
       .main-nav{justify-content:center}
-      .main-nav a{font-size:0.8rem;padding:0.4rem 0.6rem}
+      .main-nav a{font-size:.8rem;padding:.4rem .58rem}
+      .hero{padding:3.6rem 1.2rem 3rem}
+      .content-box{padding:1.5rem}
+      .footer-inner{flex-direction:column;gap:1.1rem}
     }
   </style>
 </head>
 <body>
   <header class="page-header">
     <div class="header-content">
-      <a href="index.html" class="logo">
-        <div class="logo-icon">AM</div>
+      <a href="https://archmox.acreetionos.org" class="logo">
+        <span class="logo-icon">AM</span>
         <span class="logo-text">Arch<span>mox</span></span>
       </a>
-      <nav class="main-nav">
-        <a href="index.html" class="active">Home</a>
+      <nav class="main-nav" aria-label="Primary">
+        <a href="https://archmox.acreetionos.org" class="active">Home</a>
         <a href="#about">About</a>
         <a href="#features">Features</a>
-        <a href="#download">Download</a>
+        <a href="#install">Install</a>
         <a href="https://pve.archmox.acreetionos.org">PVE</a>
         <a href="https://pbs.archmox.acreetionos.org">PBS</a>
         <a href="https://pmg.archmox.acreetionos.org">PMG</a>
         <a href="https://docs.archmox.acreetionos.org">Docs</a>
+        <a href="https://cdn.archmox.acreetionos.org">CDN</a>
         <a href="https://github.com/archmox">GitHub</a>
       </nav>
     </div>
@@ -114,80 +164,113 @@
   <section class="hero">
     <div class="hero-badge">Sponsored by the AcreetionOS Project</div>
     <h1>Enterprise Virtualization on Arch Linux</h1>
-    <p>Archmox brings enterprise-grade virtualization, backup, and mail gateway capabilities to the Arch Linux ecosystem — all built with PKGBUILDs, all on <code>pacman</code>.</p>
+    <p>Archmox is an independent, community-built port of the Proxmox VE stack to Arch Linux — bringing KVM &amp; LXC virtualization, deduplicated backup, and mail gateway capabilities to the <code>pacman</code> ecosystem.</p>
     <div class="hero-cta">
-      <a href="#download" class="btn btn-primary">Coming Soon</a>
+      <a href="#install" class="btn btn-primary">Get Started</a>
       <a href="https://github.com/archmox" class="btn btn-secondary">View on GitHub</a>
+    </div>
+    <div class="trust-bar">
+      <span>&#10003; Native PKGBUILDs</span>
+      <span>&#10003; KVM + LXC</span>
+      <span>&#10003; ZFS / Ceph / LVM</span>
+      <span>&#10003; AGPLv3 Open Source</span>
     </div>
   </section>
 
   <div class="page-wrapper">
     <article id="about" class="content-box">
-      <h2>About Archmox</h2>
-      <p><strong>Archmox is an open-source virtualization stack for Arch Linux</strong>, sponsored by the AcreetionOS Project. It leverages Hyperbola GNU/Linux-libre as a stable, LTS-focused base with Arch Linux's LTS kernel carrying the necessary patches.</p>
-      <p>Archmox is a community-built project maintained by <strong>Natalie Cole-Clift Spiva</strong> and contributors.</p>
-      <div class="acreetionos-badge">&#10003; Part of the AcreetionOS Project</div>
+      <span class="kicker">About the project</span>
+      <h2>Virtualization, the Arch way</h2>
+      <p><strong>Archmox is an open-source virtualization stack for Arch Linux</strong>, sponsored by the AcreetionOS Project. It builds on a stable, LTS-focused base with the Arch Linux LTS kernel carrying the required patches, then packages the entire virtualization stack as native Arch Linux packages.</p>
+      <p>Every component is maintained as a PKGBUILD, installed and updated with <code>pacman</code>, and managed with <code>systemd</code> — no Debian packaging, no foreign dependency trees. Archmox is a community-built project maintained by <strong>Natalie Cole-Clift Spiva</strong> and contributors.</p>
+      <span class="badge">&#10003; Part of the AcreetionOS Project</span>
     </article>
 
     <article id="features" class="content-box">
-      <h2>What's Inside</h2>
+      <span class="kicker">What's inside</span>
+      <h2>One stack, every layer</h2>
       <div class="feature-grid">
         <div class="feature-card">
-          <div class="icon">🖧</div>
-          <h4>Virtual Environment (PVE)</h4>
-          <p>Full KVM virtualization and LXC containers with web management UI, live migration, snapshots, and template management.</p>
-          <code>pve-manager</code>
+          <div class="icon">&#128421;&#65039;</div>
+          <h3>Virtual Environment</h3>
+          <p>Full KVM virtualization and LXC containers with a web management UI, live migration, snapshots, and template management.</p>
+          <span class="pkg">pve-manager</span>
         </div>
         <div class="feature-card">
-          <div class="icon">💾</div>
-          <h4>Backup Server (PBS)</h4>
-          <p>Content-addressable, deduplicated backup system for VMs and containers. Written in Rust for performance and reliability.</p>
-          <code>archmox-pbs</code>
+          <div class="icon">&#128190;</div>
+          <h3>Backup Server</h3>
+          <p>Content-addressable, deduplicated backup for VMs and containers. Written in Rust for performance and reliability.</p>
+          <span class="pkg">archmox-pbs</span>
         </div>
         <div class="feature-card">
-          <div class="icon">✉️</div>
-          <h4>Mail Gateway (PMG)</h4>
+          <div class="icon">&#9993;&#65039;</div>
+          <h3>Mail Gateway</h3>
           <p>SMTP proxy with spam filtering, virus scanning, and policy routing to protect your email infrastructure.</p>
-          <code>pmg-api</code>
+          <span class="pkg">pmg-api</span>
         </div>
         <div class="feature-card">
-          <div class="icon">🗄️</div>
-          <h4>Software-Defined Storage</h4>
+          <div class="icon">&#128451;&#65039;</div>
+          <h3>Software-Defined Storage</h3>
           <p>ZFS, Ceph, and LVM — pool local and networked storage into a unified, highly-available fabric with built-in replication.</p>
-          <code>ceph &bull; zfs</code>
+          <span class="pkg">ceph &bull; zfs</span>
         </div>
         <div class="feature-card">
-          <div class="icon">🔗</div>
-          <h4>HA Clustering</h4>
+          <div class="icon">&#128279;</div>
+          <h3>HA Clustering</h3>
           <p>Corosync-based cluster stack with distributed resource management and automatic failover for production workloads.</p>
-          <code>corosync-pve</code>
+          <span class="pkg">corosync-pve</span>
         </div>
         <div class="feature-card">
-          <div class="icon">📦</div>
-          <h4>Arch Linux Native</h4>
-          <p>Every component packaged as PKGBUILDs. Install and update with <code>pacman</code>, manage with systemd. No .deb dependencies.</p>
-          <code>pacman -S archmox</code>
+          <div class="icon">&#128230;</div>
+          <h3>Arch Linux Native</h3>
+          <p>Every component packaged as PKGBUILDs. Install and update with <code>pacman</code>, manage with <code>systemd</code>. No .deb dependencies.</p>
+          <span class="pkg">pacman -S archmox</span>
         </div>
       </div>
     </article>
 
-    <article id="download" class="content-box">
-      <h2>Download</h2>
-      <p style="text-align:center;padding:2rem;background:var(--am-box);border:1px solid var(--am-border);border-radius:12px;font-size:1.2rem;color:var(--am-teal);font-weight:700">&#8987; Coming Soon</p>
-      <p>Archmox ISOs and binary repositories will be available once the initial port is complete. Follow the <a href="https://github.com/archmox">GitHub repositories</a> for progress updates.</p>
+    <article id="install" class="content-box">
+      <span class="kicker">Get started</span>
+      <h2>Install from the Archmox repository</h2>
+      <p>Archmox ships as a binary <code>pacman</code> repository. Add it once, then install the full virtualization stack with a single command.</p>
+      <div class="install-grid">
+        <div>
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div>
+              <h3>Add the <code>[archmox]</code> repository</h3>
+              <p>Append the following block to <code>/etc/pacman.conf</code>:</p>
+            </div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <div>
+              <h3>Install the stack</h3>
+              <p>Refresh the package databases and install the core virtualization meta-package:</p>
+            </div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">3</div>
+            <div>
+              <h3>Manage with systemd</h3>
+              <p>Enable the services you need and open the web interface on port <code>8006</code> (PVE/PMG) or <code>8007</code> (PBS).</p>
+            </div>
+          </div>
+        </div>
+        <pre class="code-block"><code><span class="c-comment"># /etc/pacman.conf</span>
+<span class="c-key">[archmox]</span>
+SigLevel = Required DatabaseOptional
+Server = <span class="c-str">https://cdn.archmox.acreetionos.org/$repo/$arch</span>
 
-      <h3>Contribute</h3>
-      <p>Archmox is community-driven. We accept pull requests on GitHub. Priority areas:</p>
-      <ul>
-        <li>Porting Perl modules from Debian paths to Arch paths</li>
-        <li>Converting <code>debian/rules</code> to PKGBUILDs</li>
-        <li>Adapting <code>pve-installer</code> for <code>archiso</code></li>
-        <li>Testing on bare metal</li>
-      </ul>
+<span class="c-comment"># Refresh databases and install</span>
+<span class="c-cmd">sudo pacman -Sy archmox-proxmox-ve</span></code></pre>
+      </div>
+      <p style="margin-top:1.4rem;font-size:.86rem">Component packages such as <code>archmox-pbs</code> and <code>pmg-api</code> can be installed individually. Installation media is coming soon — see the <a href="https://cdn.archmox.acreetionos.org">CDN</a> for details.</p>
     </article>
 
     <article id="services" class="content-box">
-      <h2>Fleet Services</h2>
+      <span class="kicker">Fleet services</span>
+      <h2>Explore the project</h2>
       <p>Archmox runs across a fleet of subdomains, each dedicated to a specific component:</p>
       <div class="domain-grid">
         <div class="domain-item"><a href="https://archmox.acreetionos.org">archmox.acreetionos.org</a><small>Main Site</small></div>
@@ -195,15 +278,25 @@
         <div class="domain-item"><a href="https://pbs.archmox.acreetionos.org">pbs.archmox.acreetionos.org</a><small>Backup Server</small></div>
         <div class="domain-item"><a href="https://pmg.archmox.acreetionos.org">pmg.archmox.acreetionos.org</a><small>Mail Gateway</small></div>
         <div class="domain-item"><a href="https://docs.archmox.acreetionos.org">docs.archmox.acreetionos.org</a><small>Documentation</small></div>
-        <div class="domain-item"><a href="https://cdn.archmox.acreetionos.org">cdn.archmox.acreetionos.org</a><small>ISO CDN</small></div>
+        <div class="domain-item"><a href="https://cdn.archmox.acreetionos.org">cdn.archmox.acreetionos.org</a><small>ISO &amp; Package CDN</small></div>
       </div>
     </article>
 
     <article id="support" class="content-box">
-      <h2>Get Support</h2>
-      <p><strong>Community:</strong> Join us on <a href="https://discord.acreetionos.org">Discord</a> (<code>discord.acreetionos.org</code>)</p>
+      <span class="kicker">Community</span>
+      <h2>Get support &amp; contribute</h2>
+      <p><strong>Community:</strong> Join us on <a href="https://discord.acreetionos.org">Discord</a> (discord.acreetionos.org)</p>
       <p><strong>Matrix:</strong> <a href="https://matrix.to/#/#archmox:matrix.org">#archmox:matrix.org</a></p>
       <p><strong>Mailing List:</strong> <a href="mailto:archmox-dev@lists.archmox.acreetionos.org">archmox-dev@lists.archmox.acreetionos.org</a></p>
+
+      <h3>Contribute</h3>
+      <p>Archmox is community-driven and we welcome pull requests on GitHub. Priority areas:</p>
+      <ul>
+        <li>Porting Perl modules from Debian paths to Arch paths</li>
+        <li>Converting <code>debian/rules</code> to PKGBUILDs</li>
+        <li>Adapting the installer for <code>archiso</code></li>
+        <li>Testing on bare metal and writing documentation</li>
+      </ul>
 
       <h3>Security</h3>
       <p>Report vulnerabilities to <strong><a href="mailto:security@archmox.acreetionos.org">security@archmox.acreetionos.org</a></strong>. Please encrypt sensitive reports using our GPG key.</p>
@@ -214,8 +307,26 @@
   </div>
 
   <footer class="page-footer">
-    <p>&copy; 2026 The Archmox Project &mdash; Sponsored by <a href="https://acreetionos.org">AcreetionOS</a></p>
-    <p>Built by <a href="https://natalie.acreetionos.org">Natalie Cole-Clift Spiva</a> and contributors.</p>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="https://archmox.acreetionos.org" class="logo">
+          <span class="logo-icon">AM</span>
+          <span class="logo-text">Arch<span>mox</span></span>
+        </a>
+        <p>Open-source virtualization for Arch Linux, sponsored by the AcreetionOS Project.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://archmox.acreetionos.org">Main Site</a>
+        <a href="https://pve.archmox.acreetionos.org">PVE</a>
+        <a href="https://pbs.archmox.acreetionos.org">PBS</a>
+        <a href="https://pmg.archmox.acreetionos.org">PMG</a>
+        <a href="https://docs.archmox.acreetionos.org">Docs</a>
+        <a href="https://cdn.archmox.acreetionos.org">CDN</a>
+        <a href="https://github.com/archmox">GitHub</a>
+      </nav>
+    </div>
+    <p class="footer-legal">&copy; 2026 The Archmox Project &mdash; Sponsored by <a href="https://acreetionos.org">AcreetionOS</a>. Built by <a href="https://natalie.acreetionos.org">Natalie Cole-Clift Spiva</a> and contributors.</p>
+    <p class="footer-trademark">Archmox is an independent community project and is not affiliated with, endorsed by, or sponsored by Proxmox Server Solutions GmbH. 'Proxmox' is a trademark of its respective owner.</p>
   </footer>
 </body>
 </html>

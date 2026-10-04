@@ -12,79 +12,110 @@
 <meta property="og:description" content="Complete documentation for the Archmox virtualization stack on Arch Linux.">
 <title>Archmox Docs — Documentation Hub | docs.archmox.acreetionos.org</title>
 <style>
-:root{--am-teal:#2a9d8f;--am-orange:#f4a261;--am-red:#e76f51;--am-bg:#0f0f0f;--am-panel:#1a1a1a;--am-box:#222;--am-border:#333;--am-text:#e0e0e0;--am-dim:#9a9a9a;--am-green:#2ecc71;--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;--font-mono:"Fira Code","Cascadia Code","JetBrains Mono",monospace}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{font-family:var(--font-sans);background:var(--am-bg);color:var(--am-text);line-height:1.6}
-a{color:var(--am-teal);text-decoration:none}
-a:hover{text-decoration:underline}
-.page-header{background:rgba(15,15,15,0.9);backdrop-filter:blur(12px);border-bottom:2px solid var(--am-teal);position:sticky;top:0;z-index:100}
-.header-content{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0.75rem 1.5rem}
-.logo{display:flex;align-items:center;gap:0.6rem;text-decoration:none}
-.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#000}
-.logo-text{font-size:1.2rem;font-weight:700;color:var(--am-text)}
-.logo-text span{color:var(--am-teal)}
-.main-nav{display:flex;gap:0.25rem;flex-wrap:wrap}
-.main-nav a{padding:0.4rem 0.8rem;border-radius:6px;font-size:0.85rem;color:var(--am-dim);transition:all 0.2s}
-.main-nav a:hover{background:rgba(42,157,143,0.1);color:var(--am-teal);text-decoration:none}
-.main-nav a.active{background:var(--am-teal);color:#000;font-weight:600}
-.container{max-width:1100px;margin:0 auto;padding:2rem 1.5rem 4rem}
-.page-title{text-align:center;margin-bottom:2rem}
-.page-title h1{font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.page-title p{color:var(--am-dim);margin-top:0.5rem}
-.section{margin-bottom:2rem}
-.section-title{font-size:1.3rem;font-weight:700;color:var(--am-teal);margin-bottom:0.75rem;padding-bottom:0.4rem;border-bottom:1px solid var(--am-border)}
-.doc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
-.doc-card{background:var(--am-panel);border:1px solid var(--am-border);border-radius:12px;overflow:hidden;transition:border-color 0.2s}
-.doc-card:hover{border-color:var(--am-teal)}
-.doc-card-header{padding:1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
-.doc-card-header:hover{background:rgba(42,157,143,0.05)}
-.doc-card-header h3{font-size:1rem;font-weight:600;color:var(--am-text)}
-.doc-card-header .toggle{font-size:1.2rem;color:var(--am-dim);transition:transform 0.2s}
-.doc-card-header .toggle.open{transform:rotate(180deg)}
-.doc-card-body{max-height:0;overflow:hidden;transition:max-height 0.4s ease,padding 0.3s ease;padding:0 1.25rem}
-.doc-card-body.open{max-height:2000px;padding:0 1.25rem 1.25rem}
-.doc-card-body p{color:var(--am-dim);font-size:0.9rem;margin-bottom:0.5rem}
-.doc-card-body ul{color:var(--am-dim);font-size:0.85rem;margin-left:1.2rem;margin-bottom:0.5rem}
-.doc-card-body li{margin-bottom:0.3rem}
-.doc-card-body code{font-family:var(--font-mono);background:rgba(42,157,143,0.1);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.85em}
-.doc-card-body a{font-size:0.85rem}
-.doc-card-tags{display:flex;gap:0.4rem;margin-top:0.5rem;flex-wrap:wrap}
-.tag{padding:0.15rem 0.5rem;border-radius:4px;font-size:0.7rem;font-weight:600;text-transform:uppercase}
-.tag-pve{background:rgba(42,157,143,0.2);color:var(--am-teal);border:1px solid rgba(42,157,143,0.3)}
-.tag-pbs{background:rgba(244,162,97,0.2);color:var(--am-orange);border:1px solid rgba(244,162,97,0.3)}
-.tag-pmg{background:rgba(231,111,81,0.2);color:var(--am-red);border:1px solid rgba(231,111,81,0.3)}
-.tag-infra{background:rgba(46,204,113,0.2);color:var(--am-green);border:1px solid rgba(46,204,113,0.3)}
-.workflow-table{width:100%;border-collapse:collapse;margin-top:1rem}
-.workflow-table th,.workflow-table td{padding:0.6rem 1rem;text-align:left;border-bottom:1px solid var(--am-border);font-size:0.85rem}
-.workflow-table th{color:var(--am-teal);font-weight:600;border-bottom:2px solid var(--am-teal)}
-.workflow-table td{color:var(--am-dim)}
-.workflow-table tr:hover td{background:rgba(42,157,143,0.05)}
-code.block{display:block;background:var(--am-box);padding:1rem;border-radius:8px;font-size:0.85rem;overflow-x:auto;margin:0.5rem 0;border:1px solid var(--am-border)}
-.page-footer{border-top:1px solid var(--am-border);padding:2rem 1.5rem;text-align:center;color:var(--am-dim);font-size:0.85rem}
-.page-footer a{color:var(--am-teal)}
-@media(max-width:768px){
-  .doc-cards{grid-template-columns:1fr}
-  .header-content{flex-direction:column;gap:0.5rem}
-  .main-nav{justify-content:center}
-  .page-title h1{font-size:1.8rem}
-}
+    :root{
+      --am-teal:#2a9d8f;--am-teal-bright:#3fc7b4;--am-orange:#f4a261;--am-red:#e76f51;
+      --am-bg:#0b1112;--am-bg-alt:#0e1517;--am-panel:#141d1f;--am-box:#1a2426;--am-border:#273436;
+      --am-text:#e6edee;--am-dim:#9babae;--am-green:#2ecc71;
+      --am-radius:14px;--am-shadow:0 18px 40px -22px rgba(0,0,0,.85);
+      --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --font-mono:"Fira Code","Cascadia Code","JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:var(--font-sans);background:var(--am-bg);color:var(--am-text);line-height:1.65;-webkit-font-smoothing:antialiased;
+      background-image:radial-gradient(820px 460px at 12% -8%,rgba(42,157,143,.14),transparent 60%),radial-gradient(680px 380px at 100% 0,rgba(244,162,97,.09),transparent 55%);
+      background-repeat:no-repeat;background-attachment:fixed}
+    a{color:var(--am-teal-bright);text-decoration:none}
+    a:hover{text-decoration:underline}
+    code{font-family:var(--font-mono);background:rgba(42,157,143,.12);color:#bfeee6;padding:.15rem .42rem;border-radius:5px;font-size:.88em}
+    :focus-visible{outline:2px solid var(--am-teal-bright);outline-offset:2px}
+
+    /* Header */
+    .page-header{position:sticky;top:0;z-index:100;background:rgba(11,17,18,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--am-border)}
+    .header-content{display:flex;align-items:center;justify-content:space-between;gap:1rem;max-width:1200px;margin:0 auto;padding:.7rem 1.5rem}
+    .logo{display:flex;align-items:center;gap:.65rem;text-decoration:none;flex:0 0 auto}
+    .logo:hover{text-decoration:none}
+    .logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.15rem;color:#04110f}
+    .logo-text{font-size:1.3rem;font-weight:800;color:var(--am-text);letter-spacing:-.02em}
+    .logo-text span{color:var(--am-teal-bright)}
+    .main-nav{display:flex;align-items:center;gap:.15rem;flex-wrap:wrap;justify-content:flex-end}
+    .main-nav a{padding:.48rem .78rem;border-radius:9px;font-size:.88rem;font-weight:500;color:var(--am-dim);transition:background .18s,color .18s}
+    .main-nav a:hover{background:rgba(42,157,143,.12);color:var(--am-teal-bright);text-decoration:none}
+    .main-nav a.active{background:var(--am-teal);color:#04110f;font-weight:700}
+
+    /* Layout */
+    .container{max-width:1150px;margin:0 auto;padding:2.6rem 1.5rem 4rem}
+    .page-title{text-align:center;margin-bottom:2.4rem}
+    .page-title h1{font-size:clamp(2rem,4.5vw,2.9rem);font-weight:850;letter-spacing:-.03em;line-height:1.1;background:linear-gradient(120deg,var(--am-teal-bright) 0%,var(--am-teal) 38%,var(--am-orange) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+    .page-title p{color:var(--am-dim);margin-top:.5rem}
+    .section{margin-bottom:2.4rem}
+    .section-title{font-size:1.3rem;font-weight:700;color:var(--am-text);margin-bottom:.9rem;padding-bottom:.5rem;border-bottom:1px solid var(--am-border);display:flex;align-items:center;gap:.6rem}
+    .section-title::before{content:"";width:4px;height:1.1em;border-radius:2px;background:linear-gradient(180deg,var(--am-teal),var(--am-orange))}
+    .section>p{color:var(--am-dim);font-size:.9rem;margin-bottom:1rem}
+    .doc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.1rem}
+    .doc-card{background:var(--am-panel);border:1px solid var(--am-border);border-radius:var(--am-radius);overflow:hidden;transition:border-color .2s,box-shadow .2s;box-shadow:var(--am-shadow)}
+    .doc-card:hover{border-color:rgba(42,157,143,.5)}
+    .doc-card-header{padding:1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:1rem;user-select:none}
+    .doc-card-header:hover{background:rgba(42,157,143,.05)}
+    .doc-card-header h3{font-size:1rem;font-weight:600;color:var(--am-text)}
+    .doc-card-header .toggle{font-size:1.1rem;color:var(--am-dim);transition:transform .2s}
+    .doc-card-header .toggle.open{transform:rotate(180deg)}
+    .doc-card-body{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s ease;padding:0 1.25rem}
+    .doc-card-body.open{max-height:2400px;padding:0 1.25rem 1.25rem}
+    .doc-card-body p{color:var(--am-dim);font-size:.9rem;margin-bottom:.6rem}
+    .doc-card-body ul{color:var(--am-dim);font-size:.85rem;margin:0 0 .6rem 1.2rem}
+    .doc-card-body li{margin-bottom:.3rem}
+    .doc-card-body a{font-size:.85rem;font-weight:600}
+    .doc-card-tags{display:flex;gap:.4rem;margin-top:.7rem;flex-wrap:wrap;align-items:center}
+    .tag{padding:.15rem .55rem;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .tag-pve{background:rgba(42,157,143,.18);color:var(--am-teal-bright);border:1px solid rgba(42,157,143,.35)}
+    .tag-pbs{background:rgba(244,162,97,.18);color:var(--am-orange);border:1px solid rgba(244,162,97,.35)}
+    .tag-pmg{background:rgba(231,111,81,.18);color:var(--am-red);border:1px solid rgba(231,111,81,.35)}
+    .tag-infra{background:rgba(46,204,113,.18);color:var(--am-green);border:1px solid rgba(46,204,113,.35)}
+    .workflow-table{width:100%;border-collapse:collapse;margin-top:1rem;background:var(--am-panel);border:1px solid var(--am-border);border-radius:var(--am-radius);overflow:hidden}
+    .workflow-table th,.workflow-table td{padding:.7rem 1rem;text-align:left;border-bottom:1px solid var(--am-border);font-size:.85rem}
+    .workflow-table th{color:var(--am-teal-bright);font-weight:700;background:rgba(42,157,143,.08);border-bottom:2px solid var(--am-teal)}
+    .workflow-table td{color:var(--am-dim)}
+    .workflow-table tr:last-child td{border-bottom:none}
+    .workflow-table tr:hover td{background:rgba(42,157,143,.05)}
+    code.block{display:block;background:var(--am-box);padding:1rem;border-radius:10px;font-size:.85rem;overflow-x:auto;margin:.5rem 0;border:1px solid var(--am-border);color:var(--am-text)}
+
+    /* Footer */
+    .page-footer{border-top:1px solid var(--am-border);background:var(--am-bg-alt);padding:2.6rem 1.5rem;color:var(--am-dim);font-size:.85rem}
+    .footer-inner{max-width:1150px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.5rem;justify-content:space-between;align-items:flex-start}
+    .footer-brand{max-width:340px}
+    .footer-brand p{margin-top:.7rem}
+    .footer-nav{display:flex;flex-wrap:wrap;gap:.4rem 1.3rem}
+    .footer-nav a{color:var(--am-dim)}
+    .footer-nav a:hover{color:var(--am-teal-bright)}
+    .footer-legal{max-width:1150px;margin:1.8rem auto 0;padding-top:1.3rem;border-top:1px solid var(--am-border)}
+    .footer-trademark{max-width:1150px;margin:.8rem auto 0;font-size:.76rem;color:#7c8b8d;line-height:1.65}
+
+    @media(max-width:768px){
+      .doc-cards{grid-template-columns:1fr}
+      .header-content{flex-direction:column;gap:.5rem;padding:.7rem 1rem}
+      .main-nav{justify-content:center}
+      .main-nav a{font-size:.8rem;padding:.4rem .58rem}
+      .container{padding:1.8rem 1rem 3rem}
+      .page-title h1{font-size:1.7rem}
+      .footer-inner{flex-direction:column;gap:1.1rem}
+    }
 </style>
 </head>
 <body>
 <header class="page-header">
 <div class="header-content">
 <a href="https://archmox.acreetionos.org" class="logo">
-<div class="logo-icon">AM</div>
+<span class="logo-icon">AM</span>
 <span class="logo-text">Arch<span>mox</span></span>
 </a>
-<nav class="main-nav">
-<a href="https://archmox.acreetionos.org">Home</a>
+<nav class="main-nav" aria-label="Primary">
+<a href="https://archmox.acreetionos.org">Main Site</a>
+<a href="https://pve.archmox.acreetionos.org">PVE</a>
+<a href="https://pbs.archmox.acreetionos.org">PBS</a>
+<a href="https://pmg.archmox.acreetionos.org">PMG</a>
 <a href="index.html" class="active">Docs</a>
-<a href="#porting-guides">Porting</a>
-<a href="#architecture">Architecture</a>
-<a href="#manuals">Manuals</a>
-<a href="#api">API</a>
+<a href="https://cdn.archmox.acreetionos.org">CDN</a>
 <a href="https://github.com/archmox">GitHub</a>
 </nav>
 </div>
@@ -588,9 +619,26 @@ GitHub Actions CI/CD workflows for building packages, generating ISOs, deploying
 </div>
 
 <footer class="page-footer">
-<p>&copy; 2026 The Archmox Project &mdash; Sponsored by <a href="https://acreetionos.org">AcreetionOS</a></p>
-<p>Built by <a href="https://natalie.acreetionos.org">Natalie Cole-Clift Spiva</a> and contributors.</p>
-<p><a href="https://archmox.acreetionos.org">&larr; Back to Main Site</a></p>
+<div class="footer-inner">
+<div class="footer-brand">
+<a href="https://archmox.acreetionos.org" class="logo">
+<span class="logo-icon">AM</span>
+<span class="logo-text">Arch<span>mox</span></span>
+</a>
+<p>Open-source virtualization for Arch Linux, sponsored by the AcreetionOS Project.</p>
+</div>
+<nav class="footer-nav" aria-label="Footer">
+<a href="https://archmox.acreetionos.org">Main Site</a>
+<a href="https://pve.archmox.acreetionos.org">PVE</a>
+<a href="https://pbs.archmox.acreetionos.org">PBS</a>
+<a href="https://pmg.archmox.acreetionos.org">PMG</a>
+<a href="https://docs.archmox.acreetionos.org">Docs</a>
+<a href="https://cdn.archmox.acreetionos.org">CDN</a>
+<a href="https://github.com/archmox">GitHub</a>
+</nav>
+</div>
+<p class="footer-legal">&copy; 2026 The Archmox Project &mdash; Sponsored by <a href="https://acreetionos.org">AcreetionOS</a>. Built by <a href="https://natalie.acreetionos.org">Natalie Cole-Clift Spiva</a> and contributors.</p>
+<p class="footer-trademark">Archmox is an independent community project and is not affiliated with, endorsed by, or sponsored by Proxmox Server Solutions GmbH. 'Proxmox' is a trademark of its respective owner.</p>
 </footer>
 
 <script>

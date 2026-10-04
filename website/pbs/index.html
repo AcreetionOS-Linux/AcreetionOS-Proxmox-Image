@@ -1,73 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="description" content="Archmox Backup Server — Deduplicated backup for VMs and containers on Arch Linux.">
-<title>Archmox PBS — Backup Server | archmox.acreetionos.org</title>
-<link rel="canonical" href="https://pbs.archmox.acreetionos.org/">
-<style>
-:root{--am-teal:#2a9d8f;--am-orange:#f4a261;--am-bg:#0f0f0f;--am-panel:#1a1a1a;--am-box:#222;--am-border:#333;--am-text:#e0e0e0;--am-dim:#9a9a9a;--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;--font-mono:"Fira Code",monospace}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-sans);background:var(--am-bg);color:var(--am-text);line-height:1.6;padding:2rem}
-a{color:var(--am-teal)}
-.container{max-width:900px;margin:0 auto}
-header{margin-bottom:3rem;text-align:center}
-header h1{font-size:2.5rem;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-nav{margin-top:1rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
-nav a{padding:0.4rem 0.8rem;border-radius:6px;color:var(--am-dim);font-size:0.9rem}
-nav a:hover{background:rgba(42,157,143,0.1);color:var(--am-teal);text-decoration:none}
-.box{background:var(--am-panel);border:1px solid var(--am-border);border-radius:12px;padding:2rem;margin-bottom:1.5rem}
-.box h2{color:var(--am-teal);margin-bottom:1rem}
-.box p{color:var(--am-dim);margin-bottom:0.8rem}
-.box ul{color:var(--am-dim);margin-left:1.5rem}
-.box li{margin-bottom:0.5rem}
-code{font-family:var(--font-mono);background:rgba(42,157,143,0.1);padding:0.15rem 0.4rem;border-radius:4px;font-size:0.9em}
-.back{display:block;text-align:center;margin-top:2rem;padding:0.6rem 1.5rem;border:1px solid var(--am-border);border-radius:8px;color:var(--am-dim);font-size:0.9rem}
-.back:hover{text-decoration:none;border-color:var(--am-teal);color:var(--am-teal)}
-</style>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Archmox Backup Server — Deduplicated backup for VMs and containers on Arch Linux.">
+  <link rel="canonical" href="https://pbs.archmox.acreetionos.org/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pbs.archmox.acreetionos.org/">
+  <meta property="og:title" content="Archmox PBS — Backup Server">
+  <meta property="og:description" content="Content-addressable, deduplicated backup for Arch Linux.">
+  <title>Archmox PBS — Backup Server | archmox.acreetionos.org</title>
+  <style>
+    :root{
+      --am-teal:#2a9d8f;--am-teal-bright:#3fc7b4;--am-orange:#f4a261;--am-red:#e76f51;
+      --am-bg:#0b1112;--am-bg-alt:#0e1517;--am-panel:#141d1f;--am-box:#1a2426;--am-border:#273436;
+      --am-text:#e6edee;--am-dim:#9babae;--am-green:#2ecc71;
+      --am-radius:14px;--am-shadow:0 18px 40px -22px rgba(0,0,0,.85);
+      --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --font-mono:"Fira Code","Cascadia Code","JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:var(--font-sans);background:var(--am-bg);color:var(--am-text);line-height:1.65;-webkit-font-smoothing:antialiased;
+      background-image:radial-gradient(820px 460px at 12% -8%,rgba(42,157,143,.14),transparent 60%),radial-gradient(680px 380px at 100% 0,rgba(244,162,97,.09),transparent 55%);
+      background-repeat:no-repeat;background-attachment:fixed}
+    a{color:var(--am-teal-bright);text-decoration:none}
+    a:hover{text-decoration:underline}
+    code{font-family:var(--font-mono);background:rgba(42,157,143,.12);color:#bfeee6;padding:.15rem .42rem;border-radius:5px;font-size:.88em}
+    :focus-visible{outline:2px solid var(--am-teal-bright);outline-offset:2px}
+    .page-header{position:sticky;top:0;z-index:100;background:rgba(11,17,18,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--am-border)}
+    .header-content{display:flex;align-items:center;justify-content:space-between;gap:1rem;max-width:1200px;margin:0 auto;padding:.7rem 1.5rem}
+    .logo{display:flex;align-items:center;gap:.65rem;text-decoration:none;flex:0 0 auto}
+    .logo:hover{text-decoration:none}
+    .logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--am-teal),var(--am-orange));border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.15rem;color:#04110f}
+    .logo-text{font-size:1.3rem;font-weight:800;color:var(--am-text);letter-spacing:-.02em}
+    .logo-text span{color:var(--am-teal-bright)}
+    .main-nav{display:flex;align-items:center;gap:.15rem;flex-wrap:wrap;justify-content:flex-end}
+    .main-nav a{padding:.48rem .78rem;border-radius:9px;font-size:.88rem;font-weight:500;color:var(--am-dim);transition:background .18s,color .18s}
+    .main-nav a:hover{background:rgba(42,157,143,.12);color:var(--am-teal-bright);text-decoration:none}
+    .main-nav a.active{background:var(--am-teal);color:#04110f;font-weight:700}
+    .hero{position:relative;text-align:center;padding:4.6rem 1.5rem 3.4rem;max-width:900px;margin:0 auto}
+    .hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(42,157,143,.12);border:1px solid rgba(42,157,143,.4);padding:.42rem 1.1rem;border-radius:999px;font-size:.85rem;font-weight:600;color:var(--am-teal-bright);margin-bottom:1.4rem}
+    .hero h1{font-size:clamp(2rem,4.5vw,3rem);line-height:1.1;font-weight:850;letter-spacing:-.03em;margin-bottom:1rem;background:linear-gradient(120deg,var(--am-teal-bright) 0%,var(--am-teal) 38%,var(--am-orange) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+    .hero p{font-size:clamp(1.02rem,2vw,1.18rem);color:var(--am-dim);max-width:700px;margin:0 auto 2rem}
+    .hero-cta{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.85rem 1.9rem;border-radius:11px;font-weight:700;font-size:1rem;border:2px solid transparent;transition:transform .15s,box-shadow .15s,background .18s,border-color .18s}
+    .btn:hover{text-decoration:none;transform:translateY(-2px)}
+    .btn-primary{background:linear-gradient(135deg,var(--am-teal),#23867a);color:#04110f;box-shadow:0 12px 26px -12px rgba(42,157,143,.9)}
+    .btn-secondary{background:transparent;color:var(--am-teal-bright);border-color:var(--am-teal)}
+    .btn-secondary:hover{background:rgba(42,157,143,.1)}
+    .page-wrapper{max-width:1100px;margin:0 auto;padding:0 1.5rem 4rem}
+    .content-box{background:var(--am-panel);border:1px solid var(--am-border);border-radius:var(--am-radius);padding:2.2rem;margin-bottom:1.6rem;box-shadow:var(--am-shadow)}
+    .kicker{display:inline-block;font-size:.76rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--am-orange);margin-bottom:.55rem}
+    .content-box h2{font-size:clamp(1.5rem,3vw,1.95rem);letter-spacing:-.02em;margin-bottom:.9rem}
+    .content-box>p{margin-bottom:1rem;color:var(--am-dim)}
+    .content-box h3{font-size:1.15rem;margin:1.4rem 0 .5rem;color:var(--am-text)}
+    .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem;margin:1.5rem 0 .3rem}
+    .feature-card{position:relative;background:linear-gradient(180deg,var(--am-box),var(--am-panel));border:1px solid var(--am-border);border-radius:var(--am-radius);padding:1.5rem;transition:transform .2s,border-color .2s,box-shadow .2s;overflow:hidden}
+    .feature-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--am-teal),var(--am-orange));opacity:0;transition:opacity .2s}
+    .feature-card:hover{transform:translateY(-4px);border-color:rgba(42,157,143,.5);box-shadow:var(--am-shadow)}
+    .feature-card:hover::before{opacity:1}
+    .feature-card h3{font-size:1.05rem;margin:0 0 .45rem;color:var(--am-text)}
+    .feature-card p{font-size:.9rem;color:var(--am-dim);margin:0}
+    .pkg-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.7rem;margin-top:1.2rem;list-style:none;padding:0}
+    .pkg-list li{background:var(--am-box);border:1px solid var(--am-border);border-radius:10px;padding:.7rem .95rem;font-size:.88rem;color:var(--am-dim)}
+    .pkg-list code{font-weight:600}
+    .install-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:2rem;align-items:start;margin-top:1.4rem}
+    .install-step{display:flex;gap:.9rem;margin-bottom:1.4rem}
+    .step-num{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:rgba(42,157,143,.14);border:1px solid rgba(42,157,143,.3);color:var(--am-teal-bright);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.95rem}
+    .install-step h3{font-size:1rem;margin:.2rem 0 .3rem}
+    .install-step p{font-size:.9rem;color:var(--am-dim);margin:0}
+    .code-block{background:#07100f;border:1px solid var(--am-border);border-radius:var(--am-radius);padding:1.15rem 1.25rem;overflow-x:auto;font-family:var(--font-mono);font-size:.85rem;line-height:1.8;color:var(--am-text)}
+    .code-block code{background:none;padding:0;color:inherit;font-size:inherit}
+    .c-comment{color:#54706e}.c-key{color:var(--am-orange);font-weight:700}.c-cmd{color:var(--am-teal-bright);font-weight:600}.c-str{color:#e9c46a}
+    .back{display:inline-flex;align-items:center;gap:.5rem;margin-top:.4rem;padding:.6rem 1.3rem;border:1px solid var(--am-border);border-radius:10px;color:var(--am-dim);font-size:.88rem;transition:border-color .2s,color .2s}
+    .back:hover{text-decoration:none;border-color:var(--am-teal);color:var(--am-teal-bright)}
+    .page-footer{border-top:1px solid var(--am-border);background:var(--am-bg-alt);padding:2.6rem 1.5rem;color:var(--am-dim);font-size:.85rem}
+    .footer-inner{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.5rem;justify-content:space-between;align-items:flex-start}
+    .footer-brand{max-width:340px}
+    .footer-brand p{margin-top:.7rem}
+    .footer-nav{display:flex;flex-wrap:wrap;gap:.4rem 1.3rem}
+    .footer-nav a{color:var(--am-dim)}
+    .footer-nav a:hover{color:var(--am-teal-bright)}
+    .footer-legal{max-width:1100px;margin:1.8rem auto 0;padding-top:1.3rem;border-top:1px solid var(--am-border)}
+    .footer-trademark{max-width:1100px;margin:.8rem auto 0;font-size:.76rem;color:#7c8b8d;line-height:1.65}
+    @media(max-width:860px){
+      .install-grid{grid-template-columns:1fr}
+      .header-content{flex-direction:column;gap:.5rem;padding:.7rem 1rem}
+      .main-nav{justify-content:center}
+      .main-nav a{font-size:.8rem;padding:.4rem .58rem}
+      .hero{padding:3.2rem 1.2rem 2.6rem}
+      .content-box{padding:1.5rem}
+      .footer-inner{flex-direction:column;gap:1.1rem}
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-<header>
-<h1>Archmox Backup Server</h1>
-<p style="color:var(--am-dim)">pbs.archmox.acreetionos.org</p>
-<nav><a href="https://archmox.acreetionos.org">Main Site</a><a href="https://pve.archmox.acreetionos.org">PVE</a><a href="https://pmg.archmox.acreetionos.org">PMG</a><a href="https://docs.archmox.acreetionos.org">Docs</a><a href="https://github.com/archmox">GitHub</a></nav>
-</header>
+  <header class="page-header">
+    <div class="header-content">
+      <a href="https://archmox.acreetionos.org" class="logo">
+        <span class="logo-icon">AM</span>
+        <span class="logo-text">Arch<span>mox</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Primary">
+        <a href="https://archmox.acreetionos.org">Main Site</a>
+        <a href="https://pve.archmox.acreetionos.org">PVE</a>
+        <a href="https://pbs.archmox.acreetionos.org" class="active">PBS</a>
+        <a href="https://pmg.archmox.acreetionos.org">PMG</a>
+        <a href="https://docs.archmox.acreetionos.org">Docs</a>
+        <a href="https://cdn.archmox.acreetionos.org">CDN</a>
+        <a href="https://github.com/archmox">GitHub</a>
+      </nav>
+    </div>
+  </header>
 
-<div class="box">
-<h2>Overview</h2>
-<p><strong>Archmox Backup Server (PBS)</strong> is an enterprise-grade backup solution for VMs and containers featuring content-addressable storage, inline deduplication, and encryption. The core is written in Rust for maximum performance.</p>
-<p>PBS integrates natively with PVE and supports backing up to local storage, NFS, SMB, and S3-compatible object storage.</p>
-</div>
+  <section class="hero">
+    <div class="hero-badge">Archmox Component &middot; PBS</div>
+    <h1>Archmox Backup Server</h1>
+    <p>Enterprise-grade, content-addressable backup for VMs and containers, written in Rust and packaged for Arch Linux. Deduplicated, encrypted, and verifiable.</p>
+    <div class="hero-cta">
+      <a href="#install" class="btn btn-primary">Install PBS</a>
+      <a href="https://docs.archmox.acreetionos.org" class="btn btn-secondary">Read the Docs</a>
+    </div>
+  </section>
 
-<div class="box">
-<h2>Key Features</h2>
-<ul>
-<li><strong>Content-Addressable Storage</strong> — Data is chunked and indexed by cryptographic hash, eliminating duplicates</li>
-<li><strong>Inline Deduplication</strong> — Identical data blocks are stored once, dramatically reducing storage usage</li>
-<li><strong>Client-Side Encryption</strong> — Encrypt backups before they leave the source</li>
-<li><strong>Incremental Backups</strong> — Only changed blocks are transferred after the initial full backup</li>
-<li><strong>Scheduling &amp; Retention</strong> — Configurable backup schedules with prune policies (keep-last, keep-daily, etc.)</li>
-<li><strong>Remote Sync</strong> — Sync backups between PBS instances for off-site DR</li>
-<li><strong>Web UI &amp; REST API</strong> — Full management interface and automation API</li>
-<li><strong>Verification Jobs</strong> — Automatically verify backup integrity on a schedule</li>
-</ul>
-</div>
+  <div class="page-wrapper">
+    <article class="content-box">
+      <span class="kicker">Overview</span>
+      <h2>Backups you can trust</h2>
+      <p><strong>Archmox Backup Server (PBS)</strong> is an enterprise-grade backup solution for VMs and containers featuring content-addressable storage, inline deduplication, and encryption. The core is written in Rust for maximum performance.</p>
+      <p>PBS integrates natively with PVE and supports backing up to local storage, NFS, SMB, and S3-compatible object storage.</p>
+    </article>
 
-<div class="box">
-<h2>Packages</h2>
-<ul>
-<li><code>archmox-pbs</code> — Backup server daemon and tools</li>
-<li><code>pxar</code> — High-performance archive format</li>
-<li><code>archmox-pbs-qemu</code> — QEMU integration for live VM backups</li>
-</ul>
-</div>
+    <article class="content-box">
+      <span class="kicker">Capabilities</span>
+      <h2>Key features</h2>
+      <div class="feature-grid">
+        <div class="feature-card"><h3>Content-Addressable Storage</h3><p>Data is chunked and indexed by cryptographic hash, eliminating duplicates.</p></div>
+        <div class="feature-card"><h3>Inline Deduplication</h3><p>Identical data blocks are stored once, dramatically reducing storage usage.</p></div>
+        <div class="feature-card"><h3>Client-Side Encryption</h3><p>Encrypt backups before they ever leave the source.</p></div>
+        <div class="feature-card"><h3>Incremental Backups</h3><p>Only changed blocks are transferred after the initial full backup.</p></div>
+        <div class="feature-card"><h3>Scheduling &amp; Retention</h3><p>Configurable schedules with prune policies (keep-last, keep-daily, and more).</p></div>
+        <div class="feature-card"><h3>Remote Sync</h3><p>Sync backups between PBS instances for off-site disaster recovery.</p></div>
+        <div class="feature-card"><h3>Web UI &amp; REST API</h3><p>A full management interface plus an automation-ready API.</p></div>
+        <div class="feature-card"><h3>Verification Jobs</h3><p>Automatically verify backup integrity on a schedule.</p></div>
+      </div>
+    </article>
 
-<div class="box">
-<h2>Installation</h2>
-<p style="text-align:center;padding:1.5rem;background:var(--am-box);border:1px solid var(--am-border);border-radius:10px;font-size:1.1rem;color:var(--am-teal);font-weight:700">&#8987; Coming Soon</p>
-</div>
+    <article class="content-box">
+      <span class="kicker">Packages</span>
+      <h2>What gets installed</h2>
+      <p>PBS is composed of these core PKGBUILD packages:</p>
+      <ul class="pkg-list">
+        <li><code>archmox-pbs</code> — Backup server daemon and tools</li>
+        <li><code>pxar</code> — High-performance archive format</li>
+        <li><code>archmox-pbs-qemu</code> — QEMU integration for live VM backups</li>
+      </ul>
+    </article>
 
-<a href="https://archmox.acreetionos.org" class="back">&larr; Back to Archmox</a>
-</div>
+    <article id="install" class="content-box">
+      <span class="kicker">Get started</span>
+      <h2>Install Archmox PBS</h2>
+      <p>Add the Archmox repository once, then install the backup server with <code>pacman</code>.</p>
+      <div class="install-grid">
+        <div>
+          <div class="install-step">
+            <div class="step-num">1</div>
+            <div><h3>Add the <code>[archmox]</code> repository</h3><p>Append this block to <code>/etc/pacman.conf</code>:</p></div>
+          </div>
+          <div class="install-step">
+            <div class="step-num">2</div>
+            <div><h3>Install the server</h3><p>Refresh package databases and install PBS:</p></div>
+          </div>
+          <p style="font-size:.88rem;color:var(--am-dim)">After installation, reach the web interface on port <code>8007</code> and create a datastore.</p>
+        </div>
+        <pre class="code-block"><code><span class="c-comment"># /etc/pacman.conf</span>
+<span class="c-key">[archmox]</span>
+SigLevel = Required DatabaseOptional
+Server = <span class="c-str">https://cdn.archmox.acreetionos.org/$repo/$arch</span>
+
+<span class="c-comment"># Refresh databases and install</span>
+<span class="c-cmd">sudo pacman -Sy archmox-pbs</span></code></pre>
+      </div>
+    </article>
+
+    <a href="https://archmox.acreetionos.org" class="back">&larr; Back to Archmox</a>
+  </div>
+
+  <footer class="page-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="https://archmox.acreetionos.org" class="logo">
+          <span class="logo-icon">AM</span>
+          <span class="logo-text">Arch<span>mox</span></span>
+        </a>
+        <p>Open-source virtualization for Arch Linux, sponsored by the AcreetionOS Project.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="https://archmox.acreetionos.org">Main Site</a>
+        <a href="https://pve.archmox.acreetionos.org">PVE</a>
+        <a href="https://pbs.archmox.acreetionos.org">PBS</a>
+        <a href="https://pmg.archmox.acreetionos.org">PMG</a>
+        <a href="https://docs.archmox.acreetionos.org">Docs</a>
+        <a href="https://cdn.archmox.acreetionos.org">CDN</a>
+        <a href="https://github.com/archmox">GitHub</a>
+      </nav>
+    </div>
+    <p class="footer-legal">&copy; 2026 The Archmox Project &mdash; Sponsored by <a href="https://acreetionos.org">AcreetionOS</a>. Built by <a href="https://natalie.acreetionos.org">Natalie Cole-Clift Spiva</a> and contributors.</p>
+    <p class="footer-trademark">Archmox is an independent community project and is not affiliated with, endorsed by, or sponsored by Proxmox Server Solutions GmbH. 'Proxmox' is a trademark of its respective owner.</p>
+  </footer>
 </body>
 </html>
