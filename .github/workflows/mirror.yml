@@ -35,7 +35,9 @@ jobs:
 
       - name: Push mirrored refs (fast-forward only, no force)
         env:
-          COUNTERPART: ${{ vars.COUNTERPART_REPO }}
+          # 2026-10: successor repo is archmox/archmox; the old vars.COUNTERPART_REPO
+          # pointed at the archived AcreetionOS-Code repo and failed every night.
+          COUNTERPART: 'archmox/archmox'
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
