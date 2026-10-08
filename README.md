@@ -1,5 +1,15 @@
 # AcreetionOS Proxmox Image
 
+> ## ⚰️ Archived — successor project: Archmox
+>
+> **This repository is preserved as an archive of earlier builds.**
+> Active development has moved to its successor project:
+> **[archmox/archmox](https://github.com/archmox/archmox)** — all current work,
+> future commits, and issues live there now.
+>
+> This repo here is historical: the final AcreetionOS Proxmox Image tip is
+> preserved on the successor as the `acreetionos-legacy` branch.
+
 **AcreetionOS as a Proxmox VE guest, done properly.** An auto-installing,
 Arch-based server ISO tuned for life inside Proxmox — boot it in a VM, wait
 ~10 minutes, and you have a fully configured server that the VE host can
